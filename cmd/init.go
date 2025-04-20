@@ -31,15 +31,8 @@ var initCmd = &cobra.Command{
 - manifests/ (with an empty service-types.yaml)
 - templates/ (with a default terragrunt.default.tmpl)
 `,
-	Args: cobra.MinimumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		quiet, _ := cmd.Flags().GetBool("quiet")
-		force, _ := cmd.Flags().GetBool("force")
 
-		basePath := "."
-		if len(args) >= 1 {
-			basePath = args[0]
-		}
+	RunE: func(cmd *cobra.Command, args []string) error {
 
 		cfg := []Config{
 			{

@@ -9,6 +9,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var basePath string
+var quiet bool
+var force bool
+
 var rootCmd = &cobra.Command{
 	Use:   "skiff",
 	Short: "A tool to generate and apply Terragrunt configurations from YAML manifests",
@@ -23,7 +27,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringP("path", "p", ".", "path to base output directory,default to ./")
-	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "quiet mode")
-	rootCmd.PersistentFlags().BoolP("force", "f", false, "force overwrite")
+	rootCmd.PersistentFlags().StringVarP(&basePath, "path", "p", ".", "path to base output directory,default to ./")
+	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "quiet mode")
+	rootCmd.PersistentFlags().BoolVarP(&force, "force", "f", false, "force overwrite")
 }

@@ -10,22 +10,34 @@ type (
 		ID   string `yaml:"id"`
 	}
 
-	Service struct {
-		Name    string `yaml:"name"`
-		Type    string `yaml:"type"`
-		Source  string `yaml:"source"`
-		Folder  string `yaml:"folder"`
-		Version string `yaml:"version"`
+	ServiceType struct {
+		Source   string `yaml:"source,omitempty"`
+		Folder   string `yaml:"folder,omitempty"`
+		Version  string `yaml:"version,omitempty"`
+		Template string `yaml:"template,omitempty"`
 	}
 
-	Manifest struct {
-		APIVersion string            `yaml:"apiVersion"`
-		Accounts   Account           `yaml:"account"`
-		Metadata   map[string]string `yaml:"metadata"`
+	Service struct{}
+
+	AccountManifest struct {
+		APIVersion string            `yaml:"apiVersion,omitempty"`
+		Kind       string            `yaml:"kind,omitempty"`
+		Accounts   Account           `yaml:"account,omitempty"`
+		Metadata   map[string]string `yaml:"metadata,omitempty"`
 		Services   []Service         `yaml:"services"`
+	}
+
+	ServiceTypeManifest struct {
+		APIVersion string                 `yaml:"apiVersion,omitempty"`
+		Kind       string                 `yaml:"kind,omitempty"`
+		Types      map[string]ServiceType `yaml:"types"`
 	}
 )
 
-func (m *Manifest) ToYAML() ([]byte, error) {
+func (m *AccountManifest) ToYAML() ([]byte, error) {
 	return yaml.Marshal(m)
+}
+
+func (svcType *ServiceTypeManifest) ToYAML() ([]byte, error) {
+	return yaml.Marshal(svcType)
 }
