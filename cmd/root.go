@@ -21,3 +21,9 @@ func Execute() {
 		os.Exit(1)
 	}
 }
+
+func init() {
+	rootCmd.PersistentFlags().StringP("path", "p", ".", "path to base output directory,default to ./")
+	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "quiet mode")
+	rootCmd.PersistentFlags().BoolP("force", "f", false, "force overwrite")
+}

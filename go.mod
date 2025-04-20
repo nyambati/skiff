@@ -2,7 +2,10 @@ module github.com/nyambati/skiff
 
 go 1.22.4
 
-require github.com/spf13/cobra v1.9.1
+require (
+	github.com/spf13/cobra v1.9.1
+	gopkg.in/yaml.v2 v2.4.0
+)
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
