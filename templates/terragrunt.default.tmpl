@@ -1,0 +1,17 @@
+terraform {
+  source = "git::{{ .Source }}?ref={{ .Version }}"
+}
+
+inputs = {
+{{- range $key, $val := .Inputs }}
+  {{- if eq $key "tags" }}
+  tags = {
+  {{- range $tk, $tv := $val }}
+    {{ $tk }} = "{{ $tv }}"
+  {{- end }}
+  }
+  {{- else }}
+  {{ $key }} = {{ printf "%#v" $val }}
+  {{- end }}
+{{- end }}
+}

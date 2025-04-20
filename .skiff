@@ -1,0 +1,6 @@
+force: false
+verbose: false
+path:
+  manifests: ./manifests
+  templates: ./templates
+  terragrunt: ./terragrunt
