@@ -12,7 +12,6 @@ var serviceTypeSource string
 var serviceTypeFolder string
 var serviceTypeVersion string
 var serviceTypeTemplate string
-var kind string = "ServiceTypeDefinition"
 
 var addServiceTypeCmd = &cobra.Command{
 	Use:   "service-type [flags]",

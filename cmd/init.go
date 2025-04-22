@@ -5,6 +5,8 @@ package cmd
 
 import (
 	_ "embed"
+	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/nyambati/skiff/internal/service"
@@ -34,7 +36,7 @@ var initCmd = &cobra.Command{
 `,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return nil
+		return initSkiff(basePath, verbose, force)
 	},
 }
 
@@ -43,7 +45,7 @@ func init() {
 	initCmd.Flags().StringVarP(&basePath, "path", "p", ".", "path to base output directory,default to ./")
 }
 
-func InitSkiff(path string) error {
+func initSkiff(path string, verbose bool, force bool) error {
 	manifest := service.New()
 
 	serviceTypesTemplate, err := manifest.ToYAML()
@@ -67,6 +69,12 @@ func InitSkiff(path string) error {
 	for _, c := range config {
 		if err := utils.CreateDirectory(filepath.Join(path, c.Folder)); err != nil {
 			return err
+		}
+
+		templatePath := filepath.Join(basePath, c.Folder, c.TemplateName)
+		if _, err := os.Stat(templatePath); err == nil && !force {
+			fmt.Printf("⚠️  %s already exists, skipping\n", templatePath)
+			return nil
 		}
 		if err := utils.WriteFile(filepath.Join(basePath, c.Folder, c.TemplateName), c.Template); err != nil {
 			return err

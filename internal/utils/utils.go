@@ -12,7 +12,6 @@ func CreateDirectory(path string) error {
 		fmt.Fprintf(os.Stderr, "Error creating directory %s: %s\n", path, err)
 		return err
 	}
-	fmt.Printf("Created directory %s\n", path)
 	return nil
 }
 
