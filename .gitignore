@@ -28,3 +28,4 @@ testdata
 bin
 manifests
 templates
+.skiff
