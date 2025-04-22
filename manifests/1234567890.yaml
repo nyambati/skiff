@@ -1,5 +1,0 @@
-apiVersion: v1
-account:
-  name: magic-enga
-  id: "1234567890"
-services: {}

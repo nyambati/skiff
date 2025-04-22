@@ -6,7 +6,6 @@ package cmd
 import (
 	_ "embed"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/nyambati/skiff/internal/service"
@@ -72,9 +71,9 @@ func initSkiff(path string, verbose bool, force bool) error {
 		}
 
 		templatePath := filepath.Join(basePath, c.Folder, c.TemplateName)
-		if _, err := os.Stat(templatePath); err == nil && !force {
-			fmt.Printf("⚠️  %s already exists, skipping\n", templatePath)
-			return nil
+		if utils.FileExists(templatePath) && !force {
+			fmt.Printf("⚠️ Skipping, %s already exists, use --force to overwrite\n", templatePath)
+			continue
 		}
 		if err := utils.WriteFile(filepath.Join(basePath, c.Folder, c.TemplateName), c.Template); err != nil {
 			return err

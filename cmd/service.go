@@ -4,6 +4,7 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/nyambati/skiff/internal/account"
@@ -42,7 +43,12 @@ var addServiceCmd = &cobra.Command{
 				Inputs:   utils.ParseKeyValueFlag(inputs),
 			},
 		)
-		return manifest.Write(path, verbose, force)
+
+		if err := manifest.Write(path, verbose, true); err != nil {
+			return err
+		}
+		fmt.Printf("✅ Service %s has been added to %s\n", serviceName, filepath.Join(path, accountID))
+		return nil
 	},
 }
 

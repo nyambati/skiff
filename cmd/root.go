@@ -31,7 +31,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", true, "quiet mode")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose mode")
 	rootCmd.PersistentFlags().BoolVarP(&force, "force", "f", false, "force overwrite")
 
 	viper.AddConfigPath(".")
@@ -43,7 +43,7 @@ func init() {
 	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 	viper.BindPFlag("force", rootCmd.PersistentFlags().Lookup("force"))
 
-	if err := viper.ReadInConfig(); err == nil {
+	if err := viper.ReadInConfig(); err == nil && verbose {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
 

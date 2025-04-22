@@ -20,7 +20,6 @@ func WriteFile(path string, content []byte) error {
 		fmt.Fprintf(os.Stderr, "❌ Failed to write file %s: %v\n", path, err)
 		return err
 	}
-	fmt.Printf("✅ Created file: %s\n", path)
 	return nil
 }
 
@@ -70,4 +69,9 @@ func getStructReference(i any) (reflect.Value, error) {
 	}
 
 	return ref, nil
+}
+
+func FileExists(path string) bool {
+	_, err := os.Stat(path)
+	return !os.IsNotExist(err)
 }

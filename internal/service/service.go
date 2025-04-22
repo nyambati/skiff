@@ -24,6 +24,7 @@ func (m *Manifest) Write(path string, verbose, force bool) error {
 	if err != nil {
 		return err
 	}
+
 	return utils.WriteFile(path, buff)
 }
 

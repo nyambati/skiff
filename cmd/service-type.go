@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/nyambati/skiff/internal/service"
@@ -34,7 +35,12 @@ var addServiceTypeCmd = &cobra.Command{
 			},
 		)
 
-		return manifest.Write(path, verbose, force)
+		if err := manifest.Write(path, verbose, force); err != nil {
+			return err
+		}
+
+		fmt.Printf("✅ Service type '%s' added to %s\n", serviceTypeName, path)
+		return nil
 
 	},
 }

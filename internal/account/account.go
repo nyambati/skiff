@@ -51,6 +51,7 @@ func (m *Manifest) AddService(name string, svc *service.Service) error {
 	dest, exists := m.GetService(name)
 	if !exists {
 		m.Services[name] = *svc
+		return nil
 	}
 
 	if err := utils.Merge(dest, svc); err != nil {
