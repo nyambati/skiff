@@ -34,7 +34,7 @@ func New() *Manifest {
 	}
 }
 
-func (m Manifest) AddServiceType(name string, svcType *ServiceType) error {
+func (m *Manifest) AddServiceType(name string, svcType *ServiceType) error {
 	dest, exists := m.GetServiceType(name)
 	if !exists {
 		m.Types[name] = *svcType

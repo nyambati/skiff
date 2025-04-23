@@ -75,3 +75,8 @@ func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
 }
+
+func PrintErrorAndExit(err error) {
+	fmt.Fprintf(os.Stderr, "❌ Error: %v\n", err)
+	os.Exit(1)
+}

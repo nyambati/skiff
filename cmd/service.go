@@ -26,11 +26,22 @@ var inputs string
 var addServiceCmd = &cobra.Command{
 	Use:   "service",
 	Short: "Adds service manifests",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		var manifest account.Manifest
-		path := config.Config.Path.Manifests
+		var catalog service.Manifest
+
+		path := config.Config.Manifests
 		if err := manifest.Read(path, accountID); err != nil {
-			return err
+			utils.PrintErrorAndExit(err)
+		}
+
+		if err := catalog.Read(fmt.Sprintf("%s/service-types.yaml", config.Config.Manifests)); err != nil {
+			utils.PrintErrorAndExit(err)
+		}
+
+		if _, exists := catalog.GetServiceType(serviceType); !exists {
+			err := fmt.Errorf("service type %s does not exist, run `skiff add service-type` to add a new service type", serviceType)
+			utils.PrintErrorAndExit(err)
 		}
 
 		manifest.AddService(
@@ -46,10 +57,9 @@ var addServiceCmd = &cobra.Command{
 		)
 
 		if err := manifest.Write(path, verbose, true); err != nil {
-			return err
+			utils.PrintErrorAndExit(err)
 		}
 		fmt.Printf("✅ Service %s has been added to %s\n", serviceName, filepath.Join(path, accountID))
-		return nil
 	},
 }
 
@@ -64,7 +74,7 @@ func init() {
 	addServiceCmd.Flags().StringVar(&metadata, "metadata", "", "metadata")
 	addServiceCmd.Flags().StringVar(&inputs, "inputs", "", "inputs")
 
-	requiredFlags := []string{"account-id", "name"}
+	requiredFlags := []string{"account-id", "name", "type"}
 
 	for _, flag := range requiredFlags {
 		addServiceCmd.MarkFlagRequired(flag)
