@@ -4,24 +4,31 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
 	"os"
+	"strings"
 
-	"github.com/nyambati/skiff/internal/types"
+	"github.com/nyambati/skiff/internal/config"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-var basePath string
 var verbose bool
 var force bool
-var skiffConfig types.SkiffConfig
 
 var rootCmd = &cobra.Command{
 	Use:   "skiff",
 	Short: "A tool to generate and apply Terragrunt configurations from YAML manifests",
 	Long: `Skiff is a CLI tool that helps you define, generate,
 and apply infrastructure using a declarative YAML format and Terragrunt.`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if err := config.Load(cmd.Name()); err != nil {
+			if strings.Contains(err.Error(), "Not Found") {
+				cmd.Println("❌ Missing .skiff file. Run `skiff init` to create one ")
+				os.Exit(1)
+			}
+			cmd.PrintErr(err)
+			os.Exit(1)
+		}
+	},
 }
 
 func Execute() {
@@ -33,21 +40,4 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose mode")
 	rootCmd.PersistentFlags().BoolVarP(&force, "force", "f", false, "force overwrite")
-
-	viper.AddConfigPath(".")
-	viper.SetConfigName(".skiff")
-	viper.SetConfigType("yaml")
-
-	// bind viper to cobra
-	viper.BindPFlag("path", rootCmd.PersistentFlags().Lookup("path"))
-	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
-	viper.BindPFlag("force", rootCmd.PersistentFlags().Lookup("force"))
-
-	if err := viper.ReadInConfig(); err == nil && verbose {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
-
-	if err := viper.Unmarshal(&skiffConfig); err != nil {
-		fmt.Println("Error unmarshalling config:", err)
-	}
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/service"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +20,7 @@ var addServiceTypeCmd = &cobra.Command{
 	Short: "Add a new service type in service-types.yaml",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var manifest service.Manifest
-		path := filepath.Join(basePath, "manifests", "service-types.yaml")
+		path := filepath.Join(config.Config.Manifests, "service-types.yaml")
 
 		if err := manifest.Read(path); err != nil {
 			return err

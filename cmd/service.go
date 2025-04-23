@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/nyambati/skiff/internal/account"
+	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/service"
 	"github.com/nyambati/skiff/internal/utils"
 	"github.com/spf13/cobra"
@@ -27,7 +28,7 @@ var addServiceCmd = &cobra.Command{
 	Short: "Adds service manifests",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var manifest account.Manifest
-		path := filepath.Join(basePath, "manifests")
+		path := config.Config.Path.Manifests
 		if err := manifest.Read(path, accountID); err != nil {
 			return err
 		}
