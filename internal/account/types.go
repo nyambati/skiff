@@ -13,7 +13,7 @@ type (
 	Manifest struct {
 		APIVersion string                     `yaml:"apiVersion,omitempty"`
 		Account    Account                    `yaml:"account,omitempty"`
-		Metadata   map[string]string          `yaml:"metadata,omitempty"`
+		Metadata   map[string]any             `yaml:"metadata,omitempty"`
 		Services   map[string]service.Service `yaml:"services"`
 	}
 )
