@@ -25,14 +25,11 @@ func (m *Manifest) Write(path string, verbose, force bool) error {
 	if err != nil {
 		return err
 	}
-
 	path = filepath.Join(path, fmt.Sprintf("%s.yaml", m.Account.ID))
-
 	if err := utils.WriteFile(path, data); err != nil {
 		return err
 	}
 	return nil
-
 }
 
 func (m *Manifest) ToYAML() ([]byte, error) {
@@ -53,11 +50,9 @@ func (m *Manifest) AddService(name string, svc *service.Service) error {
 		m.Services[name] = *svc
 		return nil
 	}
-
 	if err := utils.Merge(dest, svc); err != nil {
 		return err
 	}
-
 	m.Services[name] = *dest
 	return nil
 }

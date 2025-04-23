@@ -12,11 +12,8 @@ type (
 		TargetFolder string
 	}
 	RenderConfig []Config
-
-	Strategy func(manifests []*account.Manifest, svcTypes *service.Manifest) *RenderConfig
-
-	metadata map[string]any
-
+	Strategy     func(manifests []*account.Manifest, svcTypes *service.Manifest, labels string) *RenderConfig
+	metadata     map[string]any
 	TemplateData struct {
 		service.Service
 		Source string

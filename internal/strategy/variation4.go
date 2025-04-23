@@ -10,7 +10,7 @@ import (
 
 var defaultTemplate = "terragrunt.default.tmpl"
 
-func Variation4(manifests []*account.Manifest, catalog *service.Manifest) *RenderConfig {
+func Variation4(manifests []*account.Manifest, catalog *service.Manifest, labels string) *RenderConfig {
 	renderConfigs := make(RenderConfig, 0, len(manifests))
 	for _, manifest := range manifests {
 		accountID := manifest.Account.ID
