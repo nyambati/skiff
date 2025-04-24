@@ -8,9 +8,10 @@ type (
 	}
 
 	SkiffConfig struct {
-		Version string `yaml:"version"`
-		Verbose bool   `yaml:"verbose"`
-		Path    `yaml:"path"`
+		Version  string `yaml:"version"`
+		Verbose  bool   `yaml:"verbose"`
+		Strategy string `yaml:"strategy"`
+		Path     `yaml:"path"`
 	}
 
 	InitConfig struct {

@@ -6,6 +6,7 @@ import (
 	"github.com/nyambati/skiff/internal/account"
 	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/service"
+	"github.com/nyambati/skiff/internal/utils"
 )
 
 var defaultTemplate = "terragrunt.default.tmpl"
@@ -16,6 +17,20 @@ func Variation4(manifests []*account.Manifest, catalog *service.Manifest, labels
 		accountID := manifest.Account.ID
 		rootFolder := filepath.Join(config.Config.Path.Terragrunt, accountID)
 		for name, svc := range manifest.Services {
+
+			// filter services based on labels
+			if labels != "" {
+				serviceLabels := svc.Labels
+				if len(serviceLabels) == 0 {
+					serviceLabels = map[string]any{}
+				}
+				serviceLabels["region"] = svc.Region
+				serviceLabels["type"] = svc.Type
+				if !utils.HasLabels(serviceLabels, utils.ParseKeyValueFlag(labels)) {
+					continue
+				}
+			}
+
 			typeDef, ok := catalog.Types[svc.Type]
 			if !ok {
 				continue

@@ -16,7 +16,13 @@ import (
 	"github.com/nyambati/skiff/internal/strategy"
 )
 
-func getRenderConfig(strategyName, accountID, labels string) (*strategy.RenderConfig, error) {
+// getRenderConfig retrieves the render configuration based on the provided strategy name,
+// account ID, and labels. It reads the service catalog from the service-types.yaml file,
+// loads the account manifests, and applies the selected strategy to generate the render
+// configuration. Returns a pointer to the RenderConfig and an error if any issues occur
+// during processing.
+
+func GetRenderConfig(strategyName, accountID, labels string) (*strategy.RenderConfig, error) {
 	var serviceCatalog service.Manifest
 	serviceTypesPath := fmt.Sprintf("%s/service-types.yaml", config.Config.Manifests)
 	if err := serviceCatalog.Read(serviceTypesPath); err != nil {
@@ -30,6 +36,10 @@ func getRenderConfig(strategyName, accountID, labels string) (*strategy.RenderCo
 	return selectedStrategy(manifests, &serviceCatalog, labels), nil
 }
 
+// loadManifests reads the account manifests from the manifests folder based on the provided
+// account ID or IDs. If an empty string is provided, it reads all account manifests in the
+// folder. It returns a slice of pointers to Manifest and an error if any issues occur during
+// processing.
 func loadManifests(accountID string) ([]*account.Manifest, error) {
 	var manifests []*account.Manifest
 
@@ -49,6 +59,11 @@ func loadManifests(accountID string) ([]*account.Manifest, error) {
 	}
 	return manifests, nil
 }
+
+// getAccountIDs reads the account manifest IDs from the manifests folder based on the
+// provided account ID. If an empty string is provided, it reads all account manifest IDs
+// in the folder. It returns a slice of strings containing the account IDs and an error
+// if any issues occur during processing.
 func getAccountIDs(accountID string) ([]string, error) {
 	if accountID != "" {
 		return []string{accountID}, nil
@@ -68,8 +83,15 @@ func getAccountIDs(accountID string) ([]string, error) {
 	return accountIDs, nil
 }
 
+// Render generates Terragrunt configuration files based on the provided strategy,
+// account ID, and labels. It retrieves the rendering configuration and parses the
+// specified templates. If dryRun is true, it only prints the rendered output without
+// writing to files. Otherwise, it creates the necessary directories and writes the
+// rendered files to the specified target folders. Returns an error if any issues occur
+// during the rendering process.
+
 func Render(strategy, accountID, labels string, dryRun bool) error {
-	configs, err := getRenderConfig(strategy, accountID, labels)
+	configs, err := GetRenderConfig(strategy, accountID, labels)
 	if err != nil {
 		return err
 	}
@@ -111,10 +133,24 @@ func Render(strategy, accountID, labels string, dryRun bool) error {
 	return nil
 }
 
+// toHCL takes an arbitrary Go value and renders it as an HCL string,
+// indenting the output with two spaces. It's intended to be used as a
+// template function to inject arbitrary data into HCL templates.
 func toHCL(v interface{}) string {
 	return renderWithIndent(v, 1)
 }
 
+// renderWithIndent takes an arbitrary Go value and renders it as an HCL string,
+// indenting the output with the given number of spaces. It's intended to be used
+// as a template function to inject arbitrary data into HCL templates.
+//
+// The function handles the following types as follows:
+//
+// - map[string]interface{}: renders as a nested object with sorted keys
+// - []interface{}: renders as a list of elements
+// - string: renders as a quoted string
+// - bool, int, float64: renders as the raw value
+// - all other types: renders as a quoted string
 func renderWithIndent(v interface{}, level int) string {
 	indent := func(l int) string {
 		return strings.Repeat("  ", l)

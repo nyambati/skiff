@@ -4,6 +4,9 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"os"
+
+	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/template"
 	"github.com/spf13/cobra"
 )
@@ -16,8 +19,9 @@ var generateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "Generates terragrunt configurations files from manifests",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := template.Render("default", accountID, labels, dryRun); err != nil {
+		if err := template.Render(config.Config.Strategy, accountID, labels, dryRun); err != nil {
 			cmd.PrintErr(err)
+			os.Exit(1)
 		}
 	},
 }

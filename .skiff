@@ -1,5 +1,6 @@
 force: false
 verbose: false
+strategy: default
 path:
   manifests: ./manifests
   templates: ./templates

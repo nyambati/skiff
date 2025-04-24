@@ -17,6 +17,7 @@ type (
 		Version  string         `yaml:"version,omitempty"`
 		Metadata map[string]any `yaml:"metadata,omitempty"`
 		Inputs   map[string]any `yaml:"inputs,omitempty"`
+		Labels   map[string]any `yaml:"labels,omitempty"`
 	}
 
 	Manifest struct {
