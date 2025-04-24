@@ -98,7 +98,8 @@ func Render(accountID, labels string, dryRun bool) error {
 
 	for _, cfg := range *configs {
 		funcMaps := sprig.TxtFuncMap()
-		funcMaps["toHCL"] = toHCL
+		funcMaps["toObject"] = toObject
+		funcMaps["toProp"] = toProp
 		funcMaps["var"] = func() strategy.TemplateContext { return *cfg.Context }
 		tmpl, err := template.New("").Funcs(funcMaps).ParseFiles(cfg.Template)
 		if err != nil {
@@ -135,11 +136,38 @@ func Render(accountID, labels string, dryRun bool) error {
 	return nil
 }
 
-// toHCL takes an arbitrary Go value and renders it as an HCL string,
+func toProp(v interface{}) string {
+	normalized := normalizeYAMLTypes(v)
+
+	val, ok := normalized.(map[string]interface{})
+	if !ok {
+		return ""
+	}
+
+	indent := func(l int) string {
+		return strings.Repeat("  ", l)
+	}
+
+	var lines []string
+	keys := make([]string, 0, len(val))
+	for k := range val {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		line := fmt.Sprintf("%s%s = %s", indent(1), k, renderWithIndent(val[k], 2))
+		lines = append(lines, line)
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+// toObject takes an arbitrary Go value and renders it as an HCL string,
 // indenting the output with two spaces. It's intended to be used as a
 // template function to inject arbitrary data into HCL templates.
-func toHCL(v interface{}) string {
-	return renderWithIndent(v, 1)
+func toObject(v interface{}) string {
+	return renderWithIndent(normalizeYAMLTypes(v), 1)
 }
 
 // renderWithIndent takes an arbitrary Go value and renders it as an HCL string,
@@ -188,5 +216,23 @@ func renderWithIndent(v interface{}, level int) string {
 		return fmt.Sprintf("%v", val)
 	default:
 		return fmt.Sprintf("\"%v\"", val)
+	}
+}
+
+func normalizeYAMLTypes(input interface{}) interface{} {
+	switch v := input.(type) {
+	case map[interface{}]interface{}:
+		m := make(map[string]interface{})
+		for key, value := range v {
+			m[fmt.Sprintf("%v", key)] = normalizeYAMLTypes(value)
+		}
+		return m
+	case []interface{}:
+		for i, val := range v {
+			v[i] = normalizeYAMLTypes(val)
+		}
+		return v
+	default:
+		return v
 	}
 }

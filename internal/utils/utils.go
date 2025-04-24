@@ -112,6 +112,7 @@ func ToMap[T any](input T) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var output map[string]any
 	if err := json.Unmarshal(data, &output); err != nil {
 		return nil, err

@@ -41,6 +41,7 @@ func (m *Manifest) Read(path, accountID string) error {
 	if err != nil {
 		return err
 	}
+
 	return yaml.Unmarshal(buff, &m)
 }
 

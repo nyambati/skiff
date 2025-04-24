@@ -53,25 +53,16 @@ func buildTemplateContext(
 		"region":       svc.Region,
 		"version":      svc.Version,
 	}
-
 	data, err := utils.ToMap(serviceType)
 	if err != nil {
 		return nil, err
 	}
-
 	for k, v := range data {
 		ctx[strings.ToLower(k)] = v
 	}
 
-	data, err = utils.ToMap(svc)
-	if err != nil {
-		return nil, err
-	}
-
-	for k, v := range data {
-		ctx[strings.ToLower(k)] = v
-	}
-
+	ctx["inputs"] = svc.Inputs
+	ctx["dependencies"] = svc.Dependencies
 	return &ctx, nil
 }
 
@@ -223,4 +214,40 @@ func SanitizePath(input string) string {
 	}
 	// Rejoin into clean slash-delimited path
 	return strings.Join(cleanParts, "/")
+}
+
+func resolveDependencies(
+	currentService service.Service,
+	allServices map[string]service.Service,
+	layoutFunc func(service.Service) string,
+) []map[string]interface{} {
+	currentPath := layoutFunc(currentService)
+	var resolvedDependencies []map[string]interface{}
+
+	for _, dependency := range currentService.Dependencies {
+		serviceName := dependency["name"].(string)
+		targetService, exists := allServices[serviceName]
+		if !exists {
+			continue
+		}
+
+		targetPath := layoutFunc(targetService)
+		relativePath, err := filepath.Rel(currentPath, targetPath)
+		if err != nil {
+			continue
+		}
+
+		resolvedDependency := map[string]interface{}{
+			"name":        serviceName,
+			"config_path": fmt.Sprintf("${path_relative_from_include}/%s", relativePath),
+		}
+
+		for key, value := range dependency {
+			resolvedDependency[key] = value
+		}
+
+		resolvedDependencies = append(resolvedDependencies, resolvedDependency)
+	}
+
+	return resolvedDependencies
 }
