@@ -19,7 +19,6 @@ var serviceType string
 var scope string
 var region string
 var version string
-var metadata string
 var inputs string
 
 // serviceCmd represents the service command
@@ -47,12 +46,12 @@ var addServiceCmd = &cobra.Command{
 		manifest.AddService(
 			serviceName,
 			&service.Service{
-				Type:     serviceType,
-				Scope:    scope,
-				Region:   region,
-				Version:  version,
-				Metadata: utils.ParseKeyValueFlag(metadata),
-				Inputs:   utils.ParseKeyValueFlag(inputs),
+				Type:    serviceType,
+				Scope:   scope,
+				Region:  region,
+				Version: version,
+				Labels:  utils.ParseKeyValueFlag(labels),
+				Inputs:  utils.ParseKeyValueFlag(inputs),
 			},
 		)
 
@@ -71,7 +70,7 @@ func init() {
 	addServiceCmd.Flags().StringVar(&scope, "scope", "", "Scope: global or regional (required)")
 	addServiceCmd.Flags().StringVar(&region, "region", "", "AWS region (required)")
 	addServiceCmd.Flags().StringVar(&version, "version", "", "Optional module version override")
-	addServiceCmd.Flags().StringVar(&metadata, "metadata", "", "metadata")
+	addServiceCmd.Flags().StringVar(&labels, "labels", "", "service labels/tags")
 	addServiceCmd.Flags().StringVar(&inputs, "inputs", "", "inputs")
 
 	requiredFlags := []string{"account-id", "name", "type"}

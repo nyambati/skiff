@@ -1,16 +1,15 @@
 force: false
 verbose: false
 path:
-  manifests: ./manifests
-  templates: ./templates
-  terragrunt: ./terragrunt
+  manifests: ./testdata/manifests
+  templates: ./testdata/templates
+  terragrunt: ./testdata/terragrunt
 strategy:
-  name: terragrunt
-  description: terragrunt
+  description: Account-based layout with global and regional separation
   template: |
     {{var.env}}/{{ var.account_id }}/
     {{ if eq var.scope "global" }}
       global/{{ var.service }}
     {{ else }}
-      regions/{{ var.region }}/{{ var.folder }}/{{ var.service }}
+      regions/{{ var.region }}/{{ var.group }}/{{ var.service }}
     {{ end }}

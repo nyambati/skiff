@@ -42,20 +42,23 @@ strategy:
   name: terragrunt
   description: Account-based layout with global and regional separation
   template: |
-    {{- .env }}/{{ .account_id }}/
-    {{ if eq .scope "global" }}
-      global/{{ .service }}
+    {{- var.env }}/{{ var.account_id }}/
+    {{ if eq var.scope "global" }}
+      global/{{ var.service }}
     {{ else }}
-      regions/{{ .region }}/{{ .folder }}/{{ .service }}
+      regions/{{ .region }}/{{ var.group }}/{{ var.service }}
     {{ end }}
 ```
 
 Variables provided per service:
 
 - `account_id`
+- `account_name` Name of the account
+- `service` (name of the service)
 - `scope` (global or regional)
-- `region`, `folder`, `service`
-- `env`, and other custom labels
+- `region`,
+- `group`,
+- all keys in metadata and labels
 
 ---
 
@@ -68,11 +71,11 @@ apiVersion: v1
 types:
   network:
     source: github.com/terraform-aws-modules/terraform-aws-vpc
-    folder: networks
+    group: networks
     version: v1.0.0
   database:
     source: github.com/terraform-aws-modules/terraform-aws-rds
-    folder: databases
+    group: databases
     version: v1.0.0
 ```
 
@@ -85,26 +88,17 @@ account:
   id: "123456789012"
 metadata:
   app: user
-  environment: prod
+  env: prod
 services:
   - name: iam-root
     type: iam
     scope: global
-    metadata:
+    labels:
       app: shared
-      environment: prod
-  - name: user-vpc
-    type: network
-    scope: regional
-    region: us-east-1
-    labels:
-      app: user
-  - name: user-db
-    type: database
-    scope: regional
-    region: us-east-1
-    labels:
-      app: user
+      env: prod
+    inputs:
+      account_id: "123456789012"
+
 ```
 
 ---

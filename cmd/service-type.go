@@ -11,7 +11,7 @@ import (
 
 var serviceTypeName string
 var serviceTypeSource string
-var serviceTypeFolder string
+var serviceTypeGroup string
 var serviceTypeVersion string
 var serviceTypeTemplate string
 
@@ -30,7 +30,7 @@ var addServiceTypeCmd = &cobra.Command{
 			serviceTypeName,
 			&service.ServiceType{
 				Source:   serviceTypeSource,
-				Folder:   serviceTypeFolder,
+				Group:    serviceTypeGroup,
 				Version:  serviceTypeVersion,
 				Template: serviceTypeTemplate,
 			},
@@ -48,7 +48,7 @@ var addServiceTypeCmd = &cobra.Command{
 
 func init() {
 	addServiceTypeCmd.Flags().StringVar(&serviceTypeSource, "source", "", "terraform module source (required)")
-	addServiceTypeCmd.Flags().StringVar(&serviceTypeFolder, "folder", "", "folder to generate terragrunt files")
+	addServiceTypeCmd.Flags().StringVar(&serviceTypeGroup, "group", "", "group to generate terragrunt files")
 	addServiceTypeCmd.Flags().StringVar(&serviceTypeVersion, "version", "", "default module version (required)")
 	addServiceTypeCmd.Flags().StringVar(&serviceTypeTemplate, "template", "terragrunt.default.tmpl", "terragrunt template")
 	addServiceTypeCmd.Flags().StringVar(&serviceTypeName, "name", "", "Service type name (required)")

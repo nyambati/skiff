@@ -97,8 +97,10 @@ func Render(accountID, labels string, dryRun bool) error {
 	}
 
 	for _, cfg := range *configs {
-
-		tmpl, err := template.New("").Funcs(template.FuncMap{"toHCL": toHCL}).Funcs(sprig.TxtFuncMap()).ParseFiles(cfg.Template)
+		funcMaps := sprig.TxtFuncMap()
+		funcMaps["toHCL"] = toHCL
+		funcMaps["var"] = func() strategy.TemplateContext { return *cfg.Context }
+		tmpl, err := template.New("").Funcs(funcMaps).ParseFiles(cfg.Template)
 		if err != nil {
 			return fmt.Errorf("failed to parse template: %w", err)
 		}
@@ -107,7 +109,7 @@ func Render(accountID, labels string, dryRun bool) error {
 
 		if dryRun {
 			var buff bytes.Buffer
-			if err := tmpl.ExecuteTemplate(&buff, filepath.Base(cfg.Template), cfg.Data); err != nil {
+			if err := tmpl.ExecuteTemplate(&buff, filepath.Base(cfg.Template), nil); err != nil {
 				return fmt.Errorf("failed to render template to %s: %w", outputPath, err)
 			}
 			fmt.Printf("🧪 [Dry Run] Would render: %s\n", outputPath)
@@ -125,7 +127,7 @@ func Render(accountID, labels string, dryRun bool) error {
 			return fmt.Errorf("failed to create file %s: %w", outputPath, err)
 		}
 		defer file.Close()
-		if err := tmpl.ExecuteTemplate(file, filepath.Base(cfg.Template), cfg.Data); err != nil {
+		if err := tmpl.ExecuteTemplate(file, filepath.Base(cfg.Template), nil); err != nil {
 			return fmt.Errorf("failed to render template to %s: %w", outputPath, err)
 		}
 		fmt.Printf("✅ Rendered: %s\n", outputPath)
