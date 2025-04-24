@@ -1,7 +1,16 @@
 force: false
 verbose: false
-strategy: default
 path:
   manifests: ./manifests
   templates: ./templates
   terragrunt: ./terragrunt
+strategy:
+  name: terragrunt
+  description: terragrunt
+  template: |
+    {{var.env}}/{{ var.account_id }}/
+    {{ if eq var.scope "global" }}
+      global/{{ var.service }}
+    {{ else }}
+      regions/{{ var.region }}/{{ var.folder }}/{{ var.service }}
+    {{ end }}

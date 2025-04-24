@@ -22,7 +22,7 @@ import (
 // configuration. Returns a pointer to the RenderConfig and an error if any issues occur
 // during processing.
 
-func GetRenderConfig(strategyName, accountID, labels string) (*strategy.RenderConfig, error) {
+func GetRenderConfig(accountID, labels string) (*strategy.RenderConfig, error) {
 	var serviceCatalog service.Manifest
 	serviceTypesPath := fmt.Sprintf("%s/service-types.yaml", config.Config.Manifests)
 	if err := serviceCatalog.Read(serviceTypesPath); err != nil {
@@ -32,8 +32,8 @@ func GetRenderConfig(strategyName, accountID, labels string) (*strategy.RenderCo
 	if err != nil {
 		return nil, err
 	}
-	selectedStrategy := strategy.GetStrategy(strategyName)
-	return selectedStrategy(manifests, &serviceCatalog, labels), nil
+
+	return strategy.Execute(manifests, &serviceCatalog, labels), nil
 }
 
 // loadManifests reads the account manifests from the manifests folder based on the provided
@@ -90,8 +90,8 @@ func getAccountIDs(accountID string) ([]string, error) {
 // rendered files to the specified target folders. Returns an error if any issues occur
 // during the rendering process.
 
-func Render(strategy, accountID, labels string, dryRun bool) error {
-	configs, err := GetRenderConfig(strategy, accountID, labels)
+func Render(accountID, labels string, dryRun bool) error {
+	configs, err := GetRenderConfig(accountID, labels)
 	if err != nil {
 		return err
 	}

@@ -1,7 +1,6 @@
 package strategy
 
 import (
-	"github.com/nyambati/skiff/internal/account"
 	"github.com/nyambati/skiff/internal/service"
 )
 
@@ -11,10 +10,15 @@ type (
 		Data         TemplateData
 		TargetFolder string
 	}
-	RenderConfig []Config
-	Strategy     func(manifests []*account.Manifest, svcTypes *service.Manifest, labels string) *RenderConfig
-	metadata     map[string]any
-	TemplateData struct {
+	Strategy struct {
+		Path string `yaml:"path"`
+	}
+
+	StrategyFunc    func(manifests []*service.Manifest, catalog *service.Manifest, labels string) *RenderConfig
+	RenderConfig    []Config
+	StrategyContext map[string]any
+	metadata        map[string]any
+	TemplateData    struct {
 		service.Service
 		Source string
 	}

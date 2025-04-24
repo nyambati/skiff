@@ -5,12 +5,18 @@ type (
 		Manifests  string `yaml:"manifests"`
 		Templates  string `yaml:"templates"`
 		Terragrunt string `yaml:"terragrunt"`
+		Strategies string `yaml:"strategies"`
+	}
+
+	Strategy struct {
+		Description string `yaml:"description"`
+		Template    string `yaml:"template"`
 	}
 
 	SkiffConfig struct {
-		Version  string `yaml:"version"`
-		Verbose  bool   `yaml:"verbose"`
-		Strategy string `yaml:"strategy"`
+		Version  string   `yaml:"version"`
+		Verbose  bool     `yaml:"verbose"`
+		Strategy Strategy `yaml:"strategy"`
 		Path     `yaml:"path"`
 	}
 
