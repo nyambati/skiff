@@ -37,8 +37,8 @@ func (m *Manifest) ToYAML() ([]byte, error) {
 	return yaml.Marshal(m)
 }
 
-func (m *Manifest) Read(path, accountID string) error {
-	buff, err := os.ReadFile(fmt.Sprintf("%s/%s.yaml", path, accountID))
+func (m *Manifest) Read(accountID string) error {
+	buff, err := os.ReadFile(fmt.Sprintf("%s/%s.yaml", config.Config.Manifests, accountID))
 	if err != nil {
 		return err
 	}
@@ -46,21 +46,19 @@ func (m *Manifest) Read(path, accountID string) error {
 	if err := yaml.Unmarshal(buff, &m); err != nil {
 		return err
 	}
+	return nil
+}
 
+func (m *Manifest) Resolve() error {
 	for svcName, svc := range m.Services {
-		rSvc, err := svc.ResolveType(path)
+		rSvc, err := svc.ResolveType(config.Config.Manifests)
 		if err != nil {
 			return err
 		}
 		// Reconcile service
 		rSvc.Reconcile(m.Account.ID, m.Metadata)
-		err = rSvc.ResolveTargetPath(
-			svcName,
-			m.Account.ID,
-			m.Account.Name,
-			config.Config.Strategy.Template,
-			m.Metadata,
-		)
+
+		err = rSvc.ResolveTargetPath(svcName, m.Account.ID, m.Account.Name, m.Metadata)
 		if err != nil {
 			return err
 		}
@@ -88,7 +86,10 @@ func (m *Manifest) AddService(name string, svc *service.Service) error {
 		m.Services[name] = *svc
 		return nil
 	}
-	if err := utils.Merge(dest, svc); err != nil {
+
+	cleaned := CleanService(dest)
+
+	if err := utils.Merge(&cleaned, svc); err != nil {
 		return err
 	}
 	m.Services[name] = *dest
@@ -102,4 +103,16 @@ func (m *Manifest) GetService(name string) (*service.Service, bool) {
 	}
 	svc, exists := m.Services[name]
 	return &svc, exists
+}
+
+func CleanService(in *service.Service) service.Service {
+	return service.Service{
+		Type:         in.Type,
+		Region:       in.Region,
+		Scope:        in.Scope,
+		Version:      in.Version,
+		Inputs:       in.Inputs,
+		Labels:       in.Labels,
+		Dependencies: in.Dependencies,
+	}
 }

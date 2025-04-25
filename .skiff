@@ -7,7 +7,7 @@ path:
 strategy:
   description: Account-based layout with global and regional separation
   template: |
-    {{var.env}}/{{ var.account_id }}/
+    {{ var.account_id }}/
     {{ if eq var.scope "global" }}
       global/{{ var.service }}
     {{ else }}

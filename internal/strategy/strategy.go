@@ -61,9 +61,3 @@ func Execute(manifests []*account.Manifest, catalog *service.Manifest, labels st
 	}
 	return &renderConfigs
 }
-
-// SanitizePath normalizes and cleans a given path string by removing any
-// extraneous whitespace, line endings, and empty fragments. It first
-// normalizes line endings and splits the input into path parts, then
-// trims whitespace and removes empty segments. The resulting clean
-// path is returned as a slash-delimited string.

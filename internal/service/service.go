@@ -104,6 +104,10 @@ func (s *Service) Reconcile(accountId string, metadata types.Metadata) *Service 
 		s.Labels[key] = value
 	}
 
+	if len(s.Inputs) == 0 {
+		s.Inputs = map[string]any{}
+	}
+
 	s.Inputs["account_id"] = accountId
 	s.Inputs["region"] = s.Region
 	s.Inputs["tags"] = s.Labels
@@ -162,15 +166,14 @@ func (s *Service) BuildTemplateContext(serviceName, accountID, accountName strin
 func (s *Service) ResolveTargetPath(
 	svcName,
 	accountID,
-	accountName,
-	strategyTemplate string,
+	accountName string,
 	metadata types.Metadata,
 ) error {
 	strategyContext := s.buildStrategyContext(svcName, accountID, accountName, metadata)
 	tmpl, err := template.New("target_path").
 		Funcs(sprig.FuncMap()).
 		Funcs(template.FuncMap{"var": func() types.StrategyContext { return strategyContext }}).
-		Parse(strategyTemplate)
+		Parse(config.Config.Strategy.Template)
 	if err != nil {
 		return err
 	}
@@ -209,14 +212,7 @@ func (s *Service) ResolveDependencies(
 
 		targetSvc.Reconcile(accountID, metadata)
 		targetSvc.ResolveType(config.Config.Manifests)
-
-		targetSvc.ResolveTargetPath(
-			depName,
-			accountID,
-			accountName,
-			strategyTemplate,
-			metadata,
-		)
+		targetSvc.ResolveTargetPath(depName, accountID, accountName, metadata)
 
 		relPath, err := filepath.Rel(s.ResolvedTargetPath, targetSvc.ResolvedTargetPath)
 		if err != nil {

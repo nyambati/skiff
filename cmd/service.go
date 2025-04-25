@@ -30,7 +30,7 @@ var addServiceCmd = &cobra.Command{
 		var catalog service.Manifest
 
 		path := config.Config.Manifests
-		if err := manifest.Read(path, accountID); err != nil {
+		if err := manifest.Read(accountID); err != nil {
 			utils.PrintErrorAndExit(err)
 		}
 

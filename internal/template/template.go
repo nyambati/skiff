@@ -52,8 +52,10 @@ func loadManifests(accountID string) ([]*account.Manifest, error) {
 	for _, accountID := range accounts {
 		accountID = strings.TrimSuffix(accountID, filepath.Ext(accountID))
 		m := new(account.Manifest)
-		err := m.Read(config.Config.Manifests, accountID)
-		if err != nil {
+		if err := m.Read(accountID); err != nil {
+			return nil, err
+		}
+		if err := m.Resolve(); err != nil {
 			return nil, err
 		}
 		manifests = append(manifests, m)

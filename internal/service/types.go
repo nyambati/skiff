@@ -12,17 +12,27 @@ type (
 	Dependency   map[string]any
 	ServiceTypes map[string]ServiceType
 	Service      struct {
-		Type                 string         `yaml:"type,omitempty"`
-		Region               string         `yaml:"region,omitempty"`
-		Scope                string         `yaml:"scope,omitempty"`
-		Version              string         `yaml:"version,omitempty"`
-		Inputs               map[string]any `yaml:"inputs,omitempty"`
-		Labels               map[string]any `yaml:"labels,omitempty"`
-		Dependencies         []Dependency   `yaml:"dependencies,omitempty"`
-		ResolvedDependencies []Dependency   `yaml:"resolved_dependencies,omitempty"`
-		ResolvedType         *ServiceType
-		TemplateContext      types.TemplateContext
-		ResolvedTargetPath   string
+		Type                 string                `yaml:"type,omitempty"`
+		Region               string                `yaml:"region,omitempty"`
+		Scope                string                `yaml:"scope,omitempty"`
+		Version              string                `yaml:"version,omitempty"`
+		Inputs               map[string]any        `yaml:"inputs,omitempty"`
+		Labels               map[string]any        `yaml:"labels,omitempty"`
+		Dependencies         []Dependency          `yaml:"dependencies,omitempty"`
+		ResolvedDependencies []Dependency          `yaml:"resolved_dependencies,omitempty"`
+		ResolvedType         *ServiceType          `yaml:"resolvedtype,omitempty"`
+		TemplateContext      types.TemplateContext `yaml:"templatecontext,omitempty"`
+		ResolvedTargetPath   string                `yaml:"resolvedtargetpath,omitempty"`
+	}
+
+	ExportedService struct {
+		Type         string         `yaml:"type,omitempty"`
+		Region       string         `yaml:"region,omitempty"`
+		Scope        string         `yaml:"scope,omitempty"`
+		Version      string         `yaml:"version,omitempty"`
+		Inputs       map[string]any `yaml:"inputs,omitempty"`
+		Labels       map[string]any `yaml:"labels,omitempty"`
+		Dependencies []Dependency   `yaml:"dependencies,omitempty"`
 	}
 
 	Manifest struct {
