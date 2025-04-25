@@ -1,5 +1,7 @@
 package service
 
+import "github.com/nyambati/skiff/internal/types"
+
 type (
 	ServiceType struct {
 		Source   string `yaml:"source,omitempty"`
@@ -20,6 +22,9 @@ type (
 		Labels              map[string]any   `yaml:"labels,omitempty"`
 		Dependencies        []map[string]any `yaml:"dependencies,omitempty"`
 		ResolveDependencies []map[string]any `yaml:"resolve_dependencies,omitempty"`
+		StrategyContext     types.StrategyContext
+		TemplateContext     types.TemplateContext
+		ResolvedTargetPath  string
 	}
 
 	Manifest struct {

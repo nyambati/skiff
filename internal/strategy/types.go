@@ -3,12 +3,13 @@ package strategy
 import (
 	"github.com/nyambati/skiff/internal/account"
 	"github.com/nyambati/skiff/internal/service"
+	"github.com/nyambati/skiff/internal/types"
 )
 
 type (
 	Config struct {
 		Template     string
-		Context      *TemplateContext
+		Context      *types.TemplateContext
 		TargetFolder string
 	}
 	Strategy struct {
@@ -16,12 +17,10 @@ type (
 		Path        string `yaml:"path"`
 	}
 
-	StrategyFunc    func(manifests []*service.Manifest, catalog *service.Manifest, labels string) *RenderConfig
-	RenderConfig    []Config
-	StrategyContext map[string]any
-	metadata        map[string]any
-	TemplateContext map[string]any
-	LayoutFunc      func(
+	StrategyFunc func(manifests []*service.Manifest, catalog *service.Manifest, labels string) *RenderConfig
+	RenderConfig []Config
+	metadata     map[string]any
+	LayoutFunc   func(
 		serviceName string,
 		svc *service.Service,
 		typeDef *service.ServiceType,

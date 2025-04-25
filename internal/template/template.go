@@ -14,6 +14,7 @@ import (
 	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/service"
 	"github.com/nyambati/skiff/internal/strategy"
+	"github.com/nyambati/skiff/internal/types"
 )
 
 // getRenderConfig retrieves the render configuration based on the provided strategy name,
@@ -100,7 +101,7 @@ func Render(accountID, labels string, dryRun bool) error {
 		funcMaps := sprig.TxtFuncMap()
 		funcMaps["toObject"] = toObject
 		funcMaps["toProp"] = toProp
-		funcMaps["var"] = func() strategy.TemplateContext { return *cfg.Context }
+		funcMaps["var"] = func() types.TemplateContext { return *cfg.Context }
 		tmpl, err := template.New("").Funcs(funcMaps).ParseFiles(cfg.Template)
 		if err != nil {
 			return fmt.Errorf("failed to parse template: %w", err)

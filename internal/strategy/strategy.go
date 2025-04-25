@@ -1,13 +1,8 @@
 package strategy
 
 import (
-	"bytes"
-	"fmt"
 	"path/filepath"
-	"strings"
-	"text/template"
 
-	"github.com/Masterminds/sprig"
 	"github.com/nyambati/skiff/internal/account"
 	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/service"
@@ -15,56 +10,6 @@ import (
 )
 
 var defaultTemplate = "terragrunt.default.tmpl"
-
-func evaluateTargetPath(path string, ctx StrategyContext) (string, error) {
-	tmpl, err := template.New("target_path").
-		Funcs(sprig.FuncMap()).
-		Funcs(template.FuncMap{"var": func() StrategyContext { return ctx }}).
-		Parse(path)
-	if err != nil {
-		return "", err
-	}
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, nil); err != nil {
-		return "", err
-	}
-	return validatePath(&buf)
-}
-
-func validatePath(buffer *bytes.Buffer) (string, error) {
-	// Check if template markers still exist
-	if bytes.Contains(buffer.Bytes(), []byte("{{")) || bytes.Contains(buffer.Bytes(), []byte("}}")) {
-		return "", fmt.Errorf("template was not fully rendered: unresolved variables remain in %q", buffer.String())
-	}
-	return buffer.String(), nil
-}
-
-func buildTemplateContext(
-	serviceName string,
-	serviceType *service.ServiceType,
-	svc *service.Service,
-	manifest *account.Manifest,
-) (*TemplateContext, error) {
-	ctx := TemplateContext{
-		"account_id":   manifest.Account.ID,
-		"account_name": manifest.Account.Name,
-		"service":      serviceName,
-		"scope":        svc.Scope,
-		"region":       svc.Region,
-		"version":      svc.Version,
-	}
-	data, err := utils.ToMap(serviceType)
-	if err != nil {
-		return nil, err
-	}
-	for k, v := range data {
-		ctx[strings.ToLower(k)] = v
-	}
-
-	ctx["inputs"] = svc.Inputs
-	ctx["dependencies"] = svc.Dependencies
-	return &ctx, nil
-}
 
 // Execute applies the rendering strategy to the provided manifests and service catalog,
 // and returns a pointer to a RenderConfig slice. The function takes the following
@@ -95,96 +40,26 @@ func buildTemplateContext(
 func Execute(manifests []*account.Manifest, catalog *service.Manifest, labels string) *RenderConfig {
 	renderConfigs := make(RenderConfig, 0, len(manifests))
 	for _, manifest := range manifests {
-		for svcName, svc := range manifest.Services {
+		for _, svc := range manifest.Services {
 			if labels != "" && !utils.HasLabels(svc.Labels, utils.ParseKeyValueFlag(labels)) {
 				continue
 			}
 
-			typeDef, ok := catalog.Types[svc.Type]
-			if !ok {
-				continue
-			}
-
-			context := buildStrategyContext(svcName, &svc, manifest)
-
-			path, err := evaluateTargetPath(config.Config.Strategy.Template, context)
-			if err != nil {
-				continue
-			}
-
-			ctx, err := buildTemplateContext(svcName, &typeDef, &svc, manifest)
-			if err != nil {
-				continue
-			}
-
-			templatePath := typeDef.Template
+			templatePath := svc.ResolvedType.Template
 			if templatePath == "" {
 				templatePath = defaultTemplate
 			}
+
 			templatePath = filepath.Join(config.Config.Templates, templatePath)
 
 			renderConfigs = append(renderConfigs, Config{
 				Template:     templatePath,
-				TargetFolder: SanitizePath(filepath.Join(config.Config.Terragrunt, path)),
-				Context:      ctx,
+				TargetFolder: utils.SanitizePath(filepath.Join(config.Config.Terragrunt, svc.ResolvedTargetPath)),
+				Context:      &svc.TemplateContext,
 			})
 		}
 	}
 	return &renderConfigs
-}
-
-// Reconcile the service with the service type and manifest.
-//
-// It sets the service version to the service type version if not specified.
-// It initializes the service labels map if not present.
-// It copies the manifest metadata to the service labels.
-// It sets three special inputs: "account_id", "region", and "tags" (the service labels).
-func reconcileService(
-	service *service.Service,
-	manifest *account.Manifest,
-) {
-	if service.Version == "" {
-		service.Version = service.ResolvedType.Version
-	}
-
-	if len(service.Labels) == 0 {
-		service.Labels = map[string]any{}
-	}
-
-	for key, value := range manifest.Metadata {
-		service.Labels[key] = value
-	}
-
-	service.Inputs["account_id"] = manifest.Account.ID
-	service.Inputs["region"] = service.Region
-	service.Inputs["tags"] = service.Labels
-}
-
-func buildStrategyContext(
-	svcName string,
-	service *service.Service,
-	manifest *account.Manifest,
-) StrategyContext {
-	// Reconcile service
-	reconcileService(service, manifest)
-	context := StrategyContext{
-		"service":      svcName,
-		"region":       service.Region,
-		"type":         service.Type,
-		"account_id":   manifest.Account.ID,
-		"account_name": manifest.Account.Name,
-		"group":        service.ResolvedType.Group,
-	}
-
-	for key, value := range manifest.Metadata {
-		context[key] = value
-	}
-
-	for key, value := range service.Labels {
-		context[key] = value
-	}
-
-	return context
 }
 
 // SanitizePath normalizes and cleans a given path string by removing any
@@ -192,23 +67,3 @@ func buildStrategyContext(
 // normalizes line endings and splits the input into path parts, then
 // trims whitespace and removes empty segments. The resulting clean
 // path is returned as a slash-delimited string.
-
-func SanitizePath(input string) string {
-	// Normalize line endings and split into path parts
-	lines := strings.FieldsFunc(input, func(r rune) bool {
-		return r == '\n' || r == '\r' || r == '\t'
-	})
-	// Split again by "/" and trim all fragments
-	var cleanParts []string
-	for _, line := range lines {
-		parts := strings.Split(line, "/")
-		for _, p := range parts {
-			trimmed := strings.TrimSpace(p)
-			if trimmed != "" {
-				cleanParts = append(cleanParts, trimmed)
-			}
-		}
-	}
-	// Rejoin into clean slash-delimited path
-	return strings.Join(cleanParts, "/")
-}

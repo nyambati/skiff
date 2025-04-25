@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/service"
 	"github.com/nyambati/skiff/internal/utils"
 	"gopkg.in/yaml.v2"
@@ -46,14 +47,30 @@ func (m *Manifest) Read(path, accountID string) error {
 		return err
 	}
 
-	for key, svc := range m.Services {
+	for svcName, svc := range m.Services {
 		rSvc, err := svc.ResolveType(path)
 		if err != nil {
 			return err
 		}
-		m.Services[key] = *rSvc
-	}
+		// Reconcile service
+		rSvc.Reconcile(m.Account.ID, m.Metadata)
+		err = rSvc.BuildStrategyContext(
+			svcName,
+			m.Account.ID,
+			m.Account.Name,
+			config.Config.Strategy.Template,
+			m.Metadata,
+		)
+		if err != nil {
+			return err
+		}
 
+		if err := rSvc.BuildTemplateContext(svcName, m.Account.ID, m.Account.Name); err != nil {
+			return err
+		}
+
+		m.Services[svcName] = *rSvc
+	}
 	return nil
 }
 

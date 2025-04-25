@@ -119,3 +119,23 @@ func ToMap[T any](input T) (map[string]any, error) {
 	}
 	return output, nil
 }
+
+func SanitizePath(input string) string {
+	// Normalize line endings and split into path parts
+	lines := strings.FieldsFunc(input, func(r rune) bool {
+		return r == '\n' || r == '\r' || r == '\t'
+	})
+	// Split again by "/" and trim all fragments
+	var cleanParts []string
+	for _, line := range lines {
+		parts := strings.Split(line, "/")
+		for _, p := range parts {
+			trimmed := strings.TrimSpace(p)
+			if trimmed != "" {
+				cleanParts = append(cleanParts, trimmed)
+			}
+		}
+	}
+	// Rejoin into clean slash-delimited path
+	return strings.Join(cleanParts, "/")
+}
