@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/nyambati/skiff/internal/utils"
@@ -57,4 +58,27 @@ func (m *Manifest) GetServiceType(name string) (*ServiceType, bool) {
 	svcType, exists := m.Types[name]
 	return &svcType, exists
 
+}
+
+func (s *Service) ResolveType(path string) (*Service, error) {
+	if s.Type == "" {
+		return nil, fmt.Errorf("service type is required")
+	}
+
+	buff, err := os.ReadFile(fmt.Sprintf("%s/service-types.yaml", path))
+	if err != nil {
+		return nil, err
+	}
+
+	var manifest Manifest
+	if err := yaml.Unmarshal(buff, &manifest); err != nil {
+		return nil, err
+	}
+
+	serviceType, exists := manifest.GetServiceType(s.Type)
+	if !exists {
+		return nil, fmt.Errorf("service type %s does not exist, run `skiff add service-type` to add a new service type", s.Type)
+	}
+	s.ResolvedType = serviceType
+	return s, nil
 }

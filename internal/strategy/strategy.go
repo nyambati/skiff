@@ -105,7 +105,7 @@ func Execute(manifests []*account.Manifest, catalog *service.Manifest, labels st
 				continue
 			}
 
-			context := buildStrategyContext(svcName, &svc, &typeDef, manifest)
+			context := buildStrategyContext(svcName, &svc, manifest)
 
 			path, err := evaluateTargetPath(config.Config.Strategy.Template, context)
 			if err != nil {
@@ -141,11 +141,10 @@ func Execute(manifests []*account.Manifest, catalog *service.Manifest, labels st
 // It sets three special inputs: "account_id", "region", and "tags" (the service labels).
 func reconcileService(
 	service *service.Service,
-	serviceType *service.ServiceType,
 	manifest *account.Manifest,
 ) {
 	if service.Version == "" {
-		service.Version = serviceType.Version
+		service.Version = service.ResolvedType.Version
 	}
 
 	if len(service.Labels) == 0 {
@@ -164,19 +163,17 @@ func reconcileService(
 func buildStrategyContext(
 	svcName string,
 	service *service.Service,
-	serviceType *service.ServiceType,
 	manifest *account.Manifest,
 ) StrategyContext {
 	// Reconcile service
-	reconcileService(service, serviceType, manifest)
-
+	reconcileService(service, manifest)
 	context := StrategyContext{
 		"service":      svcName,
 		"region":       service.Region,
 		"type":         service.Type,
 		"account_id":   manifest.Account.ID,
 		"account_name": manifest.Account.Name,
-		"group":        serviceType.Group,
+		"group":        service.ResolvedType.Group,
 	}
 
 	for key, value := range manifest.Metadata {
@@ -214,40 +211,4 @@ func SanitizePath(input string) string {
 	}
 	// Rejoin into clean slash-delimited path
 	return strings.Join(cleanParts, "/")
-}
-
-func resolveDependencies(
-	currentService service.Service,
-	allServices map[string]service.Service,
-	layoutFunc func(service.Service) string,
-) []map[string]interface{} {
-	currentPath := layoutFunc(currentService)
-	var resolvedDependencies []map[string]interface{}
-
-	for _, dependency := range currentService.Dependencies {
-		serviceName := dependency["name"].(string)
-		targetService, exists := allServices[serviceName]
-		if !exists {
-			continue
-		}
-
-		targetPath := layoutFunc(targetService)
-		relativePath, err := filepath.Rel(currentPath, targetPath)
-		if err != nil {
-			continue
-		}
-
-		resolvedDependency := map[string]interface{}{
-			"name":        serviceName,
-			"config_path": fmt.Sprintf("${path_relative_from_include}/%s", relativePath),
-		}
-
-		for key, value := range dependency {
-			resolvedDependency[key] = value
-		}
-
-		resolvedDependencies = append(resolvedDependencies, resolvedDependency)
-	}
-
-	return resolvedDependencies
 }

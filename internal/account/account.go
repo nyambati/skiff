@@ -42,7 +42,19 @@ func (m *Manifest) Read(path, accountID string) error {
 		return err
 	}
 
-	return yaml.Unmarshal(buff, &m)
+	if err := yaml.Unmarshal(buff, &m); err != nil {
+		return err
+	}
+
+	for key, svc := range m.Services {
+		rSvc, err := svc.ResolveType(path)
+		if err != nil {
+			return err
+		}
+		m.Services[key] = *rSvc
+	}
+
+	return nil
 }
 
 func (m *Manifest) AddService(name string, svc *service.Service) error {

@@ -12,6 +12,7 @@ type (
 
 	Service struct {
 		Type                string           `yaml:"type,omitempty"`
+		ResolvedType        *ServiceType     `yaml:"resolved_type,omitempty"`
 		Region              string           `yaml:"region,omitempty"`
 		Scope               string           `yaml:"scope,omitempty"`
 		Version             string           `yaml:"version,omitempty"`
