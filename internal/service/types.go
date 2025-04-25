@@ -9,22 +9,20 @@ type (
 		Version  string `yaml:"version,omitempty"`
 		Template string `yaml:"template,omitempty"`
 	}
-
+	Dependency   map[string]any
 	ServiceTypes map[string]ServiceType
-
-	Service struct {
-		Type                string           `yaml:"type,omitempty"`
-		ResolvedType        *ServiceType     `yaml:"resolved_type,omitempty"`
-		Region              string           `yaml:"region,omitempty"`
-		Scope               string           `yaml:"scope,omitempty"`
-		Version             string           `yaml:"version,omitempty"`
-		Inputs              map[string]any   `yaml:"inputs,omitempty"`
-		Labels              map[string]any   `yaml:"labels,omitempty"`
-		Dependencies        []map[string]any `yaml:"dependencies,omitempty"`
-		ResolveDependencies []map[string]any `yaml:"resolve_dependencies,omitempty"`
-		StrategyContext     types.StrategyContext
-		TemplateContext     types.TemplateContext
-		ResolvedTargetPath  string
+	Service      struct {
+		Type                 string         `yaml:"type,omitempty"`
+		Region               string         `yaml:"region,omitempty"`
+		Scope                string         `yaml:"scope,omitempty"`
+		Version              string         `yaml:"version,omitempty"`
+		Inputs               map[string]any `yaml:"inputs,omitempty"`
+		Labels               map[string]any `yaml:"labels,omitempty"`
+		Dependencies         []Dependency   `yaml:"dependencies,omitempty"`
+		ResolvedDependencies []Dependency   `yaml:"resolved_dependencies,omitempty"`
+		ResolvedType         *ServiceType
+		TemplateContext      types.TemplateContext
+		ResolvedTargetPath   string
 	}
 
 	Manifest struct {

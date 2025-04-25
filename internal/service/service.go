@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig"
 
+	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/types"
 	"github.com/nyambati/skiff/internal/utils"
 	"gopkg.in/yaml.v2"
@@ -108,13 +110,12 @@ func (s *Service) Reconcile(accountId string, metadata types.Metadata) *Service 
 	return s
 }
 
-func (s *Service) BuildStrategyContext(
+func (s *Service) buildStrategyContext(
 	svcName,
 	accountID,
-	accountName,
-	strategyTemplate string,
+	accountName string,
 	metadata types.Metadata,
-) error {
+) types.StrategyContext {
 	context := types.StrategyContext{
 		"service":      svcName,
 		"region":       s.Region,
@@ -131,8 +132,7 @@ func (s *Service) BuildStrategyContext(
 	for key, value := range s.Labels {
 		context[key] = value
 	}
-	s.StrategyContext = context
-	return s.resolveTargetPath(strategyTemplate)
+	return context
 }
 
 func (s *Service) BuildTemplateContext(serviceName, accountID, accountName string) error {
@@ -154,15 +154,23 @@ func (s *Service) BuildTemplateContext(serviceName, accountID, accountName strin
 
 	ctx["inputs"] = s.Inputs
 	ctx["dependencies"] = s.Dependencies
+	ctx["resolved_dependencies"] = s.ResolvedDependencies
 	s.TemplateContext = ctx
 	return nil
 }
 
-func (s *Service) resolveTargetPath(pathTemplate string) error {
+func (s *Service) ResolveTargetPath(
+	svcName,
+	accountID,
+	accountName,
+	strategyTemplate string,
+	metadata types.Metadata,
+) error {
+	strategyContext := s.buildStrategyContext(svcName, accountID, accountName, metadata)
 	tmpl, err := template.New("target_path").
 		Funcs(sprig.FuncMap()).
-		Funcs(template.FuncMap{"var": func() types.StrategyContext { return s.StrategyContext }}).
-		Parse(pathTemplate)
+		Funcs(template.FuncMap{"var": func() types.StrategyContext { return strategyContext }}).
+		Parse(strategyTemplate)
 	if err != nil {
 		return err
 	}
@@ -171,7 +179,7 @@ func (s *Service) resolveTargetPath(pathTemplate string) error {
 		return err
 	}
 	resolvedPath, err := validatePath(&buf)
-	s.ResolvedTargetPath = resolvedPath
+	s.ResolvedTargetPath = utils.SanitizePath(resolvedPath)
 	return err
 }
 
@@ -181,4 +189,48 @@ func validatePath(buffer *bytes.Buffer) (string, error) {
 		return "", fmt.Errorf("template was not fully rendered: unresolved variables remain in %q", buffer.String())
 	}
 	return buffer.String(), nil
+}
+
+func (s *Service) ResolveDependencies(
+	accountID,
+	accountName,
+	strategyTemplate string,
+	services map[string]Service,
+	metadata types.Metadata,
+) {
+	resolvedDependencies := make([]Dependency, 0, len(s.Dependencies))
+
+	for _, dep := range s.Dependencies {
+		depName := dep["service"].(string)
+		targetSvc, ok := services[depName]
+		if !ok {
+			continue
+		}
+
+		targetSvc.Reconcile(accountID, metadata)
+		targetSvc.ResolveType(config.Config.Manifests)
+
+		targetSvc.ResolveTargetPath(
+			depName,
+			accountID,
+			accountName,
+			strategyTemplate,
+			metadata,
+		)
+
+		relPath, err := filepath.Rel(s.ResolvedTargetPath, targetSvc.ResolvedTargetPath)
+		if err != nil {
+			continue
+		}
+
+		resolvedDep := map[string]interface{}{
+			"service":     depName,
+			"config_path": fmt.Sprintf("${path_relative_from_include}/%s", relPath),
+		}
+		for k, v := range dep {
+			resolvedDep[k] = v
+		}
+		resolvedDependencies = append(resolvedDependencies, resolvedDep)
+	}
+	s.ResolvedDependencies = resolvedDependencies
 }

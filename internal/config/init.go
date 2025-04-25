@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/nyambati/skiff/internal/service"
 	"github.com/nyambati/skiff/internal/utils"
 )
 
@@ -19,12 +18,6 @@ var serviceTypesTemplate []byte
 var skiffConfigTemplate []byte
 
 func Init(path string, verbose bool, force bool) error {
-	manifest := service.New()
-
-	serviceTypesTemplate, err := manifest.ToYAML()
-	if err != nil {
-		return err
-	}
 
 	config := []InitConfig{
 		{

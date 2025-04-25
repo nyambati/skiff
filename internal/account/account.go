@@ -54,7 +54,7 @@ func (m *Manifest) Read(path, accountID string) error {
 		}
 		// Reconcile service
 		rSvc.Reconcile(m.Account.ID, m.Metadata)
-		err = rSvc.BuildStrategyContext(
+		err = rSvc.ResolveTargetPath(
 			svcName,
 			m.Account.ID,
 			m.Account.Name,
@@ -64,6 +64,14 @@ func (m *Manifest) Read(path, accountID string) error {
 		if err != nil {
 			return err
 		}
+
+		rSvc.ResolveDependencies(
+			m.Account.ID,
+			m.Account.Name,
+			config.Config.Strategy.Template,
+			m.Services,
+			m.Metadata,
+		)
 
 		if err := rSvc.BuildTemplateContext(svcName, m.Account.ID, m.Account.Name); err != nil {
 			return err
