@@ -73,17 +73,22 @@ func getAccountIDs(accountID string) ([]string, error) {
 		return []string{accountID}, nil
 	}
 
-	manifestDir, err := os.ReadDir(config.Config.Manifests)
+	manifestDir, err := os.ReadDir(config.Config.Path.Manifests)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read manifests directory: %w", err)
 	}
 
 	var accountIDs []string
 	for _, entry := range manifestDir {
-		if !entry.IsDir() && !strings.Contains(entry.Name(), "service-types") {
+		if !entry.IsDir() && !strings.Contains(entry.Name(), "service-types") && strings.HasSuffix(entry.Name(), ".yaml") {
 			accountIDs = append(accountIDs, entry.Name())
 		}
 	}
+
+	if len(accountIDs) == 0 {
+		return nil, fmt.Errorf("no account manifests found in %s", config.Config.Path.Manifests)
+	}
+
 	return accountIDs, nil
 }
 
@@ -144,16 +149,16 @@ func Render(accountID, labels string, dryRun bool) error {
 	return nil
 }
 
-func toInputs(v interface{}) string {
+func toInputs(v any) string {
 	var out strings.Builder
 	out.WriteString(fmt.Sprintf("inputs = %s\n", toObject(v)))
 	return out.String()
 }
 
-func toProp(v interface{}) string {
+func toProp(v any) string {
 	normalized := normalizeYAMLTypes(v)
 
-	val, ok := normalized.(map[string]interface{})
+	val, ok := normalized.(map[string]any)
 	if !ok {
 		return ""
 	}
@@ -180,7 +185,7 @@ func toProp(v interface{}) string {
 // toObject takes an arbitrary Go value and renders it as an HCL string,
 // indenting the output with two spaces. It's intended to be used as a
 // template function to inject arbitrary data into HCL templates.
-func toObject(v interface{}) string {
+func toObject(v any) string {
 	return renderWithIndent(normalizeYAMLTypes(v), 1)
 }
 
@@ -195,13 +200,13 @@ func toObject(v interface{}) string {
 // - string: renders as a quoted string
 // - bool, int, float64: renders as the raw value
 // - all other types: renders as a quoted string
-func renderWithIndent(v interface{}, level int) string {
+func renderWithIndent(v any, level int) string {
 	indent := func(l int) string {
 		return strings.Repeat("  ", l)
 	}
 
 	switch val := v.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		if len(val) == 0 {
 			return "{}"
 		}
@@ -218,7 +223,7 @@ func renderWithIndent(v interface{}, level int) string {
 		out.WriteString(indent(level-1) + "}")
 		return out.String()
 
-	case []interface{}:
+	case []any:
 		if len(val) == 0 {
 			return "[]"
 		}
@@ -231,6 +236,9 @@ func renderWithIndent(v interface{}, level int) string {
 		return out.String()
 
 	case string:
+		if strings.Contains(val, "dependency") {
+			return fmt.Sprintf("%v", val)
+		}
 		return fmt.Sprintf("\"%s\"", val)
 	case bool, int, float64:
 		return fmt.Sprintf("%v", val)
@@ -239,15 +247,15 @@ func renderWithIndent(v interface{}, level int) string {
 	}
 }
 
-func normalizeYAMLTypes(input interface{}) interface{} {
+func normalizeYAMLTypes(input any) any {
 	switch v := input.(type) {
-	case map[interface{}]interface{}:
-		m := make(map[string]interface{})
+	case map[any]any:
+		m := make(map[string]any)
 		for key, value := range v {
 			m[fmt.Sprintf("%v", key)] = normalizeYAMLTypes(value)
 		}
 		return m
-	case []interface{}:
+	case []any:
 		for i, val := range v {
 			v[i] = normalizeYAMLTypes(val)
 		}
@@ -278,9 +286,9 @@ func renderDependencies(deps []service.Dependency) string {
 			normalised := normalizeYAMLTypes(v)
 
 			switch val := normalised.(type) {
-			case map[string]interface{}:
+			case map[string]any:
 				out.WriteString(fmt.Sprintf("  %s = {\n  %s\n  }\n", k, toProp(val)))
-			case []interface{}:
+			case []any:
 				out.WriteString(fmt.Sprintf("  %s = [", k))
 				for i, item := range val {
 					if i > 0 {
@@ -304,7 +312,7 @@ func renderDependencies(deps []service.Dependency) string {
 	return out.String()
 }
 
-func formatHCLValue(v interface{}) string {
+func formatHCLValue(v any) string {
 	switch val := v.(type) {
 	case string:
 		return fmt.Sprintf("\"%s\"", val)

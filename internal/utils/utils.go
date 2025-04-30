@@ -51,6 +51,9 @@ func ParseKeyValueFlag(input string) map[string]any {
 		}
 		key := strings.TrimSpace(kv[0])
 		value := strings.TrimSpace(kv[1])
+		if key == "" || value == "" {
+			continue
+		}
 		result[key] = value
 	}
 	return result

@@ -4,10 +4,11 @@ import "github.com/nyambati/skiff/internal/types"
 
 type (
 	ServiceType struct {
-		Source   string `yaml:"source,omitempty"`
-		Group    string `yaml:"group,omitempty"`
-		Version  string `yaml:"version,omitempty"`
-		Template string `yaml:"template,omitempty"`
+		Source   string   `yaml:"source,omitempty"`
+		Group    string   `yaml:"group,omitempty"`
+		Version  string   `yaml:"version,omitempty"`
+		Template string   `yaml:"template,omitempty"`
+		Outputs  []string `yaml:"outputs"`
 	}
 	Dependency   map[string]any
 	ServiceTypes map[string]ServiceType

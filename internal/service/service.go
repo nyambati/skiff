@@ -40,6 +40,7 @@ func (m *Manifest) Write(path string, verbose, force bool) error {
 func New() *Manifest {
 	return &Manifest{
 		APIVersion: "v1",
+		Types:      ServiceTypes{},
 	}
 }
 
@@ -153,13 +154,13 @@ func (s *Service) BuildTemplateContext(serviceName, accountID, accountName strin
 	if err != nil {
 		return err
 	}
+
 	for k, v := range data {
 		ctx[strings.ToLower(k)] = v
 	}
 
 	ctx["inputs"] = s.Inputs
 	ctx["dependencies"] = s.Dependencies
-	ctx["resolved_dependencies"] = s.ResolvedDependencies
 	s.TemplateContext = ctx
 	return nil
 }
@@ -205,7 +206,11 @@ func (s *Service) ResolveDependencies(
 	resolvedDependencies := make([]Dependency, 0, len(s.Dependencies))
 
 	for _, dep := range s.Dependencies {
-		depName := dep["service"].(string)
+		depName, ok := dep["service"].(string)
+		if !ok {
+			continue
+		}
+
 		targetSvc, ok := services[depName]
 		if !ok {
 			continue
@@ -220,14 +225,22 @@ func (s *Service) ResolveDependencies(
 			continue
 		}
 
-		resolvedDep := map[string]interface{}{
+		resolvedDep := map[string]any{
 			"service":     depName,
 			"config_path": fmt.Sprintf("${path_relative_from_include}/%s", relPath),
 		}
+
 		for k, v := range dep {
 			resolvedDep[k] = v
 		}
+
+		fmt.Println(targetSvc.ResolvedType)
+
+		for _, output := range targetSvc.ResolvedType.Outputs {
+			s.Inputs[output] = fmt.Sprintf("dependency.%s.%s", depName, output)
+		}
+
 		resolvedDependencies = append(resolvedDependencies, resolvedDep)
 	}
-	s.ResolvedDependencies = resolvedDependencies
+	s.Dependencies = resolvedDependencies
 }
