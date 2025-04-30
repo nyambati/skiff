@@ -4,6 +4,7 @@ go 1.22.4
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	gopkg.in/yaml.v2 v2.4.0

@@ -8,11 +8,13 @@ import (
 	"strings"
 
 	"github.com/nyambati/skiff/internal/config"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var verbose bool
 var force bool
+var logger *logrus.Logger
 
 var rootCmd = &cobra.Command{
 	Use:   "skiff",
@@ -25,7 +27,7 @@ and apply infrastructure using a declarative YAML format and Terragrunt.`,
 				cmd.Println("❌ Missing .skiff file. Run `skiff init` to create one ")
 				os.Exit(1)
 			}
-			cmd.PrintErr(err)
+			logrus.Error(err)
 			os.Exit(1)
 		}
 	},
@@ -33,6 +35,7 @@ and apply infrastructure using a declarative YAML format and Terragrunt.`,
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
+		logrus.Error(err)
 		os.Exit(1)
 	}
 }
@@ -40,4 +43,15 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose mode")
 	rootCmd.PersistentFlags().BoolVarP(&force, "force", "f", false, "force overwrite")
+
+	logrus.SetFormatter(&logrus.TextFormatter{
+		DisableTimestamp: true,
+		PadLevelText:     true,
+	})
+
+	logrus.SetLevel(logrus.InfoLevel)
+
+	if verbose {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
 }

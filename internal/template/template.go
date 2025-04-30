@@ -15,6 +15,7 @@ import (
 	"github.com/nyambati/skiff/internal/service"
 	"github.com/nyambati/skiff/internal/strategy"
 	"github.com/nyambati/skiff/internal/types"
+	"github.com/sirupsen/logrus"
 )
 
 // getRenderConfig retrieves the render configuration based on the provided strategy name,
@@ -101,8 +102,10 @@ func Render(accountID, labels string, dryRun bool) error {
 
 	for _, cfg := range *configs {
 		funcMaps := sprig.TxtFuncMap()
+		funcMaps["inputs"] = toInputs
 		funcMaps["toObject"] = toObject
 		funcMaps["toProp"] = toProp
+		funcMaps["dependency"] = renderDependencies
 		funcMaps["var"] = func() types.TemplateContext { return *cfg.Context }
 		tmpl, err := template.New("").Funcs(funcMaps).ParseFiles(cfg.Template)
 		if err != nil {
@@ -116,7 +119,9 @@ func Render(accountID, labels string, dryRun bool) error {
 			if err := tmpl.ExecuteTemplate(&buff, filepath.Base(cfg.Template), nil); err != nil {
 				return fmt.Errorf("failed to render template to %s: %w", outputPath, err)
 			}
-			fmt.Printf("🧪 [Dry Run] Would render: %s\n", outputPath)
+			logrus.
+				WithField("template", filepath.Base(cfg.Template)).
+				Infof("🧪 [Dry Run] Would render: %s\n", outputPath)
 			fmt.Println(buff.String())
 			continue
 		}
@@ -137,6 +142,12 @@ func Render(accountID, labels string, dryRun bool) error {
 		fmt.Printf("✅ Rendered: %s\n", outputPath)
 	}
 	return nil
+}
+
+func toInputs(v interface{}) string {
+	var out strings.Builder
+	out.WriteString(fmt.Sprintf("inputs = %s\n", toObject(v)))
+	return out.String()
 }
 
 func toProp(v interface{}) string {
@@ -191,6 +202,9 @@ func renderWithIndent(v interface{}, level int) string {
 
 	switch val := v.(type) {
 	case map[string]interface{}:
+		if len(val) == 0 {
+			return "{}"
+		}
 		var out strings.Builder
 		out.WriteString("{\n")
 		keys := make([]string, 0, len(val))
@@ -205,6 +219,9 @@ func renderWithIndent(v interface{}, level int) string {
 		return out.String()
 
 	case []interface{}:
+		if len(val) == 0 {
+			return "[]"
+		}
 		var out strings.Builder
 		out.WriteString("[\n")
 		for _, item := range val {
@@ -237,5 +254,65 @@ func normalizeYAMLTypes(input interface{}) interface{} {
 		return v
 	default:
 		return v
+	}
+}
+
+func renderDependencies(deps []service.Dependency) string {
+	if len(deps) == 0 {
+		return ""
+	}
+	var out strings.Builder
+
+	for _, dep := range deps {
+		service, _ := dep["service"].(string)
+		configPath, _ := dep["config_path"].(string)
+
+		out.WriteString(fmt.Sprintf("dependency \"%s\" {\n", service))
+		out.WriteString(fmt.Sprintf("  config_path = \"%s\"\n", configPath))
+
+		for k, v := range dep {
+			if k == "service" || k == "config_path" {
+				continue
+			}
+
+			normalised := normalizeYAMLTypes(v)
+
+			switch val := normalised.(type) {
+			case map[string]interface{}:
+				out.WriteString(fmt.Sprintf("  %s = {\n  %s\n  }\n", k, toProp(val)))
+			case []interface{}:
+				out.WriteString(fmt.Sprintf("  %s = [", k))
+				for i, item := range val {
+					if i > 0 {
+						out.WriteString(", ")
+					}
+					out.WriteString(fmt.Sprintf("%q", item))
+				}
+				out.WriteString("]\n")
+
+			case bool, float64, int, string:
+				out.WriteString(fmt.Sprintf("  %s = %v\n", k, formatHCLValue(val)))
+
+			default:
+				out.WriteString(fmt.Sprintf("  # %s = (unsupported type)\n", k))
+			}
+		}
+
+		out.WriteString("}\n\n")
+	}
+
+	return out.String()
+}
+
+func formatHCLValue(v interface{}) string {
+	switch val := v.(type) {
+	case string:
+		return fmt.Sprintf("\"%s\"", val)
+	case bool:
+		return fmt.Sprintf("%t", val)
+	case float64, int:
+		return fmt.Sprintf("%v", val)
+	default:
+		return fmt.Sprintf("\"%v\"", val)
 	}
 }
