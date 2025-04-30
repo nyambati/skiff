@@ -4,9 +4,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/nyambati/skiff/internal/account"
+	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
-	"github.com/nyambati/skiff/internal/service"
+	"github.com/nyambati/skiff/internal/manifest"
 	"github.com/nyambati/skiff/internal/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,17 +22,17 @@ func TestExecute(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		manifests      []*account.Manifest
-		catalog        *service.Manifest
+		manifests      []*manifest.Manifest
+		catalog        *catalog.Catalog
 		labels         string
 		expectedConfig *RenderConfig
 	}{
 		{
 			name: "Single service with no labels",
-			manifests: []*account.Manifest{{
-				Services: map[string]service.Service{
+			manifests: []*manifest.Manifest{{
+				Services: map[string]catalog.Service{
 					"test-service": {
-						ResolvedType: &service.ServiceType{
+						ResolvedType: &catalog.ServiceType{
 							Template: "",
 						},
 						ResolvedTargetPath: "test/path",
@@ -42,7 +42,7 @@ func TestExecute(t *testing.T) {
 					},
 				},
 			}},
-			catalog: &service.Manifest{},
+			catalog: &catalog.Catalog{},
 			labels:  "",
 			expectedConfig: &RenderConfig{{
 				Template:     filepath.Join(config.Config.Path.Templates, defaultTemplate),
@@ -54,13 +54,13 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name: "Service with custom template and matching labels",
-			manifests: []*account.Manifest{{
-				Services: map[string]service.Service{
+			manifests: []*manifest.Manifest{{
+				Services: map[string]catalog.Service{
 					"custom-service": {
 						Labels: map[string]any{
 							"env": "dev",
 						},
-						ResolvedType: &service.ServiceType{
+						ResolvedType: &catalog.ServiceType{
 							Template: "custom.tmpl",
 						},
 						ResolvedTargetPath: "custom/path",
@@ -70,7 +70,7 @@ func TestExecute(t *testing.T) {
 					},
 				},
 			}},
-			catalog: &service.Manifest{},
+			catalog: &catalog.Catalog{},
 			labels:  "env=dev",
 			expectedConfig: &RenderConfig{{
 				Template:     filepath.Join(config.Config.Path.Templates, "custom.tmpl"),
@@ -82,13 +82,13 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name: "Service with non-matching labels",
-			manifests: []*account.Manifest{{
-				Services: map[string]service.Service{
+			manifests: []*manifest.Manifest{{
+				Services: map[string]catalog.Service{
 					"prod-service": {
 						Labels: map[string]any{
 							"env": "prod",
 						},
-						ResolvedType: &service.ServiceType{
+						ResolvedType: &catalog.ServiceType{
 							Template: "prod.tmpl",
 						},
 						ResolvedTargetPath: "prod/path",
@@ -98,7 +98,7 @@ func TestExecute(t *testing.T) {
 					},
 				},
 			}},
-			catalog:        &service.Manifest{},
+			catalog:        &catalog.Catalog{},
 			labels:         "env=dev",
 			expectedConfig: &RenderConfig{},
 		},

@@ -3,9 +3,9 @@ package strategy
 import (
 	"path/filepath"
 
-	"github.com/nyambati/skiff/internal/account"
+	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
-	"github.com/nyambati/skiff/internal/service"
+	"github.com/nyambati/skiff/internal/manifest"
 	"github.com/nyambati/skiff/internal/utils"
 )
 
@@ -37,7 +37,7 @@ var defaultTemplate = "terragrunt.default.tmpl"
 //     template path, target folder, and service data
 //
 // The function returns a pointer to the renderConfigs slice.
-func Execute(manifests []*account.Manifest, catalog *service.Manifest, labels string) *RenderConfig {
+func Execute(manifests []*manifest.Manifest, catalog *catalog.Catalog, labels string) *RenderConfig {
 	renderConfigs := make(RenderConfig, 0, len(manifests))
 	for _, manifest := range manifests {
 		for _, svc := range manifest.Services {

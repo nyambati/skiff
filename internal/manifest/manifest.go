@@ -1,17 +1,17 @@
-package account
+package manifest
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
-	"github.com/nyambati/skiff/internal/service"
 	"github.com/nyambati/skiff/internal/utils"
 	"gopkg.in/yaml.v2"
 )
 
-func New(version, name, id string) *Manifest {
+func NewManifest(version, name, id string) *Manifest {
 	return &Manifest{
 		APIVersion: "v1",
 		Account: Account{
@@ -80,7 +80,7 @@ func (m *Manifest) Resolve() error {
 	return nil
 }
 
-func (m *Manifest) AddService(name string, svc *service.Service) error {
+func (m *Manifest) AddService(name string, svc *catalog.Service) error {
 	dest, exists := m.GetService(name)
 	if !exists {
 		m.Services[name] = *svc
@@ -96,17 +96,17 @@ func (m *Manifest) AddService(name string, svc *service.Service) error {
 	return nil
 }
 
-func (m *Manifest) GetService(name string) (*service.Service, bool) {
+func (m *Manifest) GetService(name string) (*catalog.Service, bool) {
 	if len(m.Services) == 0 {
-		m.Services = map[string]service.Service{}
+		m.Services = map[string]catalog.Service{}
 		return nil, false
 	}
 	svc, exists := m.Services[name]
 	return &svc, exists
 }
 
-func CleanService(in *service.Service) service.Service {
-	return service.Service{
+func CleanService(in *catalog.Service) catalog.Service {
+	return catalog.Service{
 		Type:         in.Type,
 		Region:       in.Region,
 		Scope:        in.Scope,

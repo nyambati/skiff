@@ -1,8 +1,6 @@
-package account
+package manifest
 
-import (
-	"github.com/nyambati/skiff/internal/service"
-)
+import "github.com/nyambati/skiff/internal/catalog"
 
 type (
 	Account struct {
@@ -14,6 +12,6 @@ type (
 		APIVersion string                     `yaml:"apiVersion,omitempty"`
 		Account    Account                    `yaml:"account,omitempty"`
 		Metadata   map[string]any             `yaml:"metadata,omitempty"`
-		Services   map[string]service.Service `yaml:"services"`
+		Services   map[string]catalog.Service `yaml:"services"`
 	}
 )

@@ -4,8 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // CreateDirectory creates the given directory path with the given permissions.
@@ -141,4 +146,97 @@ func SanitizePath(input string) string {
 	}
 	// Rejoin into clean slash-delimited path
 	return strings.Join(cleanParts, "/")
+}
+
+func findEditor() (editor string, args []string) {
+	if editor := os.Getenv("VISUAL"); editor != "" {
+		parts := strings.Fields(editor)
+		return parts[0], parts[1:]
+	}
+
+	if editor := os.Getenv("EDITOR"); editor != "" {
+		parts := strings.Fields(editor)
+		return parts[0], parts[1:]
+	}
+
+	// OS-specific fallbacks
+	switch runtime.GOOS {
+	case "windows":
+		return "notepad", nil
+	case "darwin":
+		// On macOS, 'open -t' opens with the default text editor,
+		// or 'vi'/'nano' are common command-line fallbacks.
+		// Let's prefer 'vi' as a common default if 'open' isn't desired.
+		return "vi", nil // or "nano", or check for TextEdit via 'open -a TextEdit'
+	default: // linux, bsd, etc.
+		return "vi", nil // or "nano"
+	}
+}
+
+// editFileContent opens the content of the given file path in the user's
+// preferred editor and returns the potentially modified content as a byte slice.
+// It uses a temporary file to avoid modifying the original directly during editing.
+func EditFile(filePath string, existingContent []byte) ([]byte, error) {
+	editor, eArgs := findEditor()
+	if editor == "" {
+		return nil, fmt.Errorf("no suitable editor found (checked VISUAL, EDITOR env vars)")
+	}
+
+	// 2. Create a temporary file
+	// Use the original filename's extension for syntax highlighting if possible.
+	pattern := "edit-*" + filepath.Ext(filePath)
+	tempFile, err := os.CreateTemp("", pattern)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temporary file: %w", err)
+	}
+
+	defer os.Remove(tempFile.Name()) // Ensure cleanup
+
+	// 3. Write original content to the temporary file
+	if _, err := tempFile.Write(existingContent); err != nil {
+		tempFile.Close() // Close before attempting remove on error path
+		return nil, fmt.Errorf("failed to write to temporary file '%s': %w", tempFile.Name(), err)
+	}
+
+	// 4. Close the file handle before launching the editor
+	if err := tempFile.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close temporary file '%s': %w", tempFile.Name(), err)
+	}
+
+	args := []string{tempFile.Name()}
+
+	if eArgs != nil && len(eArgs) > 0 {
+		args = append(args, eArgs...)
+	}
+
+	// 5. Prepare and run the editor command
+	cmd := exec.Command(strings.TrimSpace(editor), args...)
+	// Connect the editor to the Go program's stdin, stdout, and stderr
+	// This is crucial for interactive use in the same terminal.
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		// This error means the editor command itself failed (e.g., editor not found,
+		// or the editor exited with a non-zero status).
+		return nil, fmt.Errorf("editor command '%s %s' failed: %w", editor, tempFile.Name(), err)
+	}
+
+	// 6. Read the content from the temporary file AFTER the editor has closed
+	editedContent, err := os.ReadFile(tempFile.Name())
+	if err != nil {
+		return nil, fmt.Errorf("failed to read edited content from temporary file '%s': %w", tempFile.Name(), err)
+	}
+
+	// 7. Temporary file is removed by defer. Return the content.
+	return editedContent, nil
+}
+
+func ToYAML(i any) ([]byte, error) {
+	data, err := yaml.Marshal(i)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }

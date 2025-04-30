@@ -1,4 +1,4 @@
-package service
+package catalog
 
 import (
 	"os"
@@ -33,25 +33,25 @@ func createServiceTypesFile(t *testing.T, tempDir string, content string) {
 
 func TestManifestMethods(t *testing.T) {
 	t.Run("New Manifest", func(t *testing.T) {
-		manifest := New()
-		assert.NotNil(t, manifest)
-		assert.Equal(t, "v1", manifest.APIVersion)
-		assert.NotNil(t, manifest.Types)
-		assert.Len(t, manifest.Types, 0)
+		catalog := NewCatalog()
+		assert.NotNil(t, catalog)
+		assert.Equal(t, "v1", catalog.APIVersion)
+		assert.NotNil(t, catalog.Types)
+		assert.Len(t, catalog.Types, 0)
 	})
 
 	t.Run("Add Service Type", func(t *testing.T) {
-		manifest := New()
+		catalog := NewCatalog()
 		svcType := &ServiceType{
 			Template: "web.tmpl",
 			Version:  "1.0.0",
 			Group:    "default",
 		}
 
-		err := manifest.AddServiceType("web", svcType)
+		err := catalog.AddServiceType("web", svcType)
 		require.NoError(t, err)
 
-		retrievedType, exists := manifest.GetServiceType("web")
+		retrievedType, exists := catalog.GetServiceType("web")
 		assert.True(t, exists)
 		assert.Equal(t, svcType.Template, retrievedType.Template)
 		assert.Equal(t, svcType.Version, retrievedType.Version)
@@ -59,7 +59,7 @@ func TestManifestMethods(t *testing.T) {
 	})
 
 	t.Run("Merge Existing Service Type", func(t *testing.T) {
-		manifest := New()
+		catalog := NewCatalog()
 		svcType1 := &ServiceType{
 			Template: "web.tmpl",
 			Version:  "1.0.0",
@@ -71,13 +71,13 @@ func TestManifestMethods(t *testing.T) {
 			Version:  "1.1.0",
 		}
 
-		err := manifest.AddServiceType("web", svcType1)
+		err := catalog.AddServiceType("web", svcType1)
 		require.NoError(t, err)
 
-		err = manifest.AddServiceType("web", svcType2)
+		err = catalog.AddServiceType("web", svcType2)
 		require.NoError(t, err)
 
-		retrievedType, exists := manifest.GetServiceType("web")
+		retrievedType, exists := catalog.GetServiceType("web")
 		assert.True(t, exists)
 		assert.Equal(t, "web-updated.tmpl", retrievedType.Template)
 		assert.Equal(t, "1.1.0", retrievedType.Version)
@@ -85,13 +85,13 @@ func TestManifestMethods(t *testing.T) {
 	})
 
 	t.Run("Add Service Type with Invalid Input", func(t *testing.T) {
-		manifest := New()
+		catalog := NewCatalog()
 		svcType := &ServiceType{}
 
-		err := manifest.AddServiceType("web", svcType)
+		err := catalog.AddServiceType("web", svcType)
 		assert.NoError(t, err, "Empty service type should be allowed")
 
-		retrievedType, exists := manifest.GetServiceType("web")
+		retrievedType, exists := catalog.GetServiceType("web")
 		assert.True(t, exists)
 		assert.Equal(t, "", retrievedType.Template)
 		assert.Equal(t, "", retrievedType.Version)
@@ -234,8 +234,8 @@ func TestBuildTemplateContext(t *testing.T) {
 
 	t.Run("Build Template Context with Incomplete Resolved Type", func(t *testing.T) {
 		service := &Service{
-			Type:   "web",
-			Region: "us-west-2",
+			Type:         "web",
+			Region:       "us-west-2",
 			ResolvedType: &ServiceType{},
 		}
 
@@ -273,7 +273,7 @@ func TestBuildTemplateContext(t *testing.T) {
 		assert.NotNil(t, service.TemplateContext)
 		assert.Equal(t, map[string]any{
 			"nested": map[string]any{"key": "value"},
-			"list": []string{"item1", "item2"},
+			"list":   []string{"item1", "item2"},
 		}, service.TemplateContext["inputs"])
 	})
 }

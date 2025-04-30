@@ -1,4 +1,4 @@
-package service
+package catalog
 
 import (
 	"bytes"
@@ -16,20 +16,25 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func (m *Manifest) ToYAML() ([]byte, error) {
-	return yaml.Marshal(m)
+const (
+	ScopeRegional = "regional"
+	ScopeGlobal   = "global"
+)
+
+func (c *Catalog) ToYAML() ([]byte, error) {
+	return yaml.Marshal(c)
 }
 
-func (m *Manifest) Read(path string) error {
+func (c *Catalog) Read(path string) error {
 	buff, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	return yaml.Unmarshal(buff, &m)
+	return yaml.Unmarshal(buff, &c)
 }
 
-func (m *Manifest) Write(path string, verbose, force bool) error {
-	buff, err := m.ToYAML()
+func (c *Catalog) Write(path string, verbose, force bool) error {
+	buff, err := c.ToYAML()
 	if err != nil {
 		return err
 	}
@@ -37,18 +42,18 @@ func (m *Manifest) Write(path string, verbose, force bool) error {
 	return utils.WriteFile(path, buff)
 }
 
-func New() *Manifest {
-	return &Manifest{
+func NewCatalog() *Catalog {
+	return &Catalog{
 		APIVersion: "v1",
 		Types:      ServiceTypes{},
 	}
 }
 
-func (m *Manifest) AddServiceType(name string, svcType *ServiceType) error {
-	dest, exists := m.GetServiceType(name)
+func (c *Catalog) AddServiceType(name string, svcType *ServiceType) error {
+	dest, exists := c.GetServiceType(name)
 	if !exists {
-		m.APIVersion = "v1"
-		m.Types[name] = *svcType
+		c.APIVersion = "v1"
+		c.Types[name] = *svcType
 		return nil
 	}
 
@@ -56,16 +61,16 @@ func (m *Manifest) AddServiceType(name string, svcType *ServiceType) error {
 		return err
 	}
 
-	m.Types[name] = *dest
+	c.Types[name] = *dest
 	return nil
 }
 
-func (m *Manifest) GetServiceType(name string) (*ServiceType, bool) {
-	if len(m.Types) == 0 {
-		m.Types = ServiceTypes{}
+func (c *Catalog) GetServiceType(name string) (*ServiceType, bool) {
+	if len(c.Types) == 0 {
+		c.Types = ServiceTypes{}
 		return nil, false
 	}
-	svcType, exists := m.Types[name]
+	svcType, exists := c.Types[name]
 	return &svcType, exists
 
 }
@@ -80,12 +85,12 @@ func (s *Service) ResolveType(path string) (*Service, error) {
 		return nil, err
 	}
 
-	var manifest Manifest
-	if err := yaml.Unmarshal(buff, &manifest); err != nil {
+	var catalog Catalog
+	if err := yaml.Unmarshal(buff, &catalog); err != nil {
 		return nil, err
 	}
 
-	serviceType, exists := manifest.GetServiceType(s.Type)
+	serviceType, exists := catalog.GetServiceType(s.Type)
 	if !exists {
 		return nil, fmt.Errorf("service type %s does not exist, run `skiff add service-type` to add a new service type", s.Type)
 	}
@@ -243,4 +248,28 @@ func (s *Service) ResolveDependencies(
 		resolvedDependencies = append(resolvedDependencies, resolvedDep)
 	}
 	s.Dependencies = resolvedDependencies
+}
+
+func ServiceFromYAML(data []byte) (*Service, error) {
+	var svc Service
+	if err := yaml.Unmarshal(data, &svc); err != nil {
+		return nil, err
+	}
+	return &svc, nil
+}
+
+func DefaultService(name string) *Service {
+	return &Service{
+		Type:    "default",
+		Scope:   ScopeRegional,
+		Version: "1.0",
+		Region:  "us-east-1",
+		Inputs:  map[string]any{},
+		Labels: map[string]any{
+			"type":  "default",
+			"scope": ScopeRegional,
+			"name":  name,
+		},
+		Dependencies: []Dependency{},
+	}
 }

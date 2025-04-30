@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/nyambati/skiff/internal/account"
+	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
-	"github.com/nyambati/skiff/internal/service"
+	"github.com/nyambati/skiff/internal/manifest"
 	"github.com/nyambati/skiff/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -26,34 +26,53 @@ var addServiceCmd = &cobra.Command{
 	Use:   "service",
 	Short: "Adds service manifests",
 	Run: func(cmd *cobra.Command, args []string) {
-		var manifest account.Manifest
-		var catalog service.Manifest
+		var manifest manifest.Manifest
+		var svcCatalog catalog.Catalog
 
 		path := config.Config.Manifests
 		if err := manifest.Read(accountID); err != nil {
 			utils.PrintErrorAndExit(err)
 		}
 
-		if err := catalog.Read(fmt.Sprintf("%s/service-types.yaml", config.Config.Manifests)); err != nil {
+		if err := svcCatalog.Read(fmt.Sprintf("%s/service-types.yaml", config.Config.Manifests)); err != nil {
 			utils.PrintErrorAndExit(err)
 		}
 
-		if _, exists := catalog.GetServiceType(serviceType); !exists {
+		if _, exists := svcCatalog.GetServiceType(serviceType); !exists {
 			err := fmt.Errorf("service type %s does not exist, run `skiff add service-type` to add a new service type", serviceType)
 			utils.PrintErrorAndExit(err)
 		}
 
-		manifest.AddService(
-			serviceName,
-			&service.Service{
-				Type:    serviceType,
-				Scope:   scope,
-				Region:  region,
-				Version: version,
-				Labels:  utils.ParseKeyValueFlag(labels),
-				Inputs:  utils.ParseKeyValueFlag(inputs),
+		existingContent, err := utils.ToYAML(catalog.Service{
+			Type:    serviceType,
+			Scope:   catalog.ScopeRegional,
+			Version: "edit me",
+			Region:  "edit me",
+			Inputs: map[string]any{
+				"name": serviceName,
 			},
-		)
+			Labels: map[string]any{
+				"type":  serviceType,
+				"scope": scope,
+				"name":  serviceName,
+			},
+			Dependencies: []catalog.Dependency{},
+		})
+		if err != nil {
+			utils.PrintErrorAndExit(err)
+		}
+
+		editContent, err := utils.EditFile(fmt.Sprintf("%s/%s.yaml", path, accountID), existingContent)
+		if err != nil {
+			utils.PrintErrorAndExit(err)
+		}
+
+		svc, err := catalog.ServiceFromYAML(editContent)
+		if err != nil {
+			utils.PrintErrorAndExit(err)
+		}
+
+		manifest.AddService(serviceName, svc)
 
 		if err := manifest.Write(path, verbose, true); err != nil {
 			utils.PrintErrorAndExit(err)
@@ -65,18 +84,9 @@ var addServiceCmd = &cobra.Command{
 func init() {
 	addCmd.AddCommand(addServiceCmd)
 	addServiceCmd.Flags().StringVar(&accountID, "account-id", "", "Account manifest name (required)")
-	addServiceCmd.Flags().StringVar(&serviceName, "name", "", "Name of the service (required)")
+	addServiceCmd.Flags().StringVar(&serviceName, "name", "", "Service manifest name (required)")
 	addServiceCmd.Flags().StringVar(&serviceType, "type", "", "Service type (required)")
-	addServiceCmd.Flags().StringVar(&scope, "scope", "", "Scope: global or regional (required)")
-	addServiceCmd.Flags().StringVar(&region, "region", "", "AWS region (required)")
-	addServiceCmd.Flags().StringVar(&version, "version", "", "Optional module version override")
-	addServiceCmd.Flags().StringVar(&labels, "labels", "", "service labels/tags")
-	addServiceCmd.Flags().StringVar(&inputs, "inputs", "", "inputs")
-
-	requiredFlags := []string{"account-id", "name", "type"}
-
-	for _, flag := range requiredFlags {
-		addServiceCmd.MarkFlagRequired(flag)
-	}
-
+	addServiceCmd.MarkFlagRequired("account-id")
+	addServiceCmd.MarkFlagRequired("name")
+	addServiceCmd.MarkFlagRequired("type")
 }

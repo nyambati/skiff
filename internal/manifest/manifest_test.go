@@ -1,12 +1,12 @@
-package account
+package manifest
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
-	"github.com/nyambati/skiff/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,10 +30,10 @@ func createTempManifestFile(t *testing.T, content string) string {
 
 func TestManifestRead(t *testing.T) {
 	testCases := []struct {
-		name           string
-		manifestContent string
-		expectedAccount Account
-		expectedServices map[string]service.Service
+		name             string
+		manifestContent  string
+		expectedAccount  Account
+		expectedServices map[string]catalog.Service
 	}{
 		{
 			name: "Valid manifest with single service",
@@ -55,7 +55,7 @@ services:
 				Name: "Test Account",
 				ID:   "1234567890",
 			},
-			expectedServices: map[string]service.Service{
+			expectedServices: map[string]catalog.Service{
 				"web-service": {
 					Type:   "web",
 					Region: "us-east-1",
@@ -84,9 +84,9 @@ services:
 				Name: "Multi Service Account",
 				ID:   "0987654321",
 			},
-			expectedServices: map[string]service.Service{
+			expectedServices: map[string]catalog.Service{
 				"db-service": {
-					Type:   "database", 
+					Type:   "database",
 					Region: "us-west-2",
 				},
 				"api-service": {
@@ -116,7 +116,7 @@ services:
 			for serviceName, expectedService := range tc.expectedServices {
 				service, exists := manifest.Services[serviceName]
 				require.True(t, exists, "Service %s should exist", serviceName)
-				
+
 				assert.Equal(t, expectedService.Type, service.Type)
 				assert.Equal(t, expectedService.Region, service.Region)
 				assert.Equal(t, expectedService.Labels, service.Labels)
@@ -158,7 +158,7 @@ types:
 				ID:   "test-account",
 				Name: "Test Account",
 			},
-			Services: map[string]service.Service{
+			Services: map[string]catalog.Service{
 				"test-service": {
 					Type: "web",
 				},
@@ -167,7 +167,7 @@ types:
 
 		// Call Resolve method
 		err = manifest.Resolve()
-		
+
 		// Verify no error occurs
 		assert.NoError(t, err)
 	})

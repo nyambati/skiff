@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/nyambati/skiff/internal/account"
 	"github.com/nyambati/skiff/internal/config"
+	"github.com/nyambati/skiff/internal/manifest"
 	"github.com/nyambati/skiff/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +17,7 @@ var addAccountCmd = &cobra.Command{
 	Use:   "account [flags]",
 	Short: "Add a new account manifest",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		manifest := account.New("v1", accountName, accountID)
+		manifest := manifest.NewManifest("v1", accountName, accountID)
 		path := config.Config.Path.Manifests
 		if utils.FileExists(filepath.Join(path, fmt.Sprintf("%s.yaml", accountID))) && !force {
 			fmt.Printf("⚠️ Skipping, %s already exists, use --force to overwrite\n", path)

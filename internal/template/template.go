@@ -10,9 +10,9 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig"
-	"github.com/nyambati/skiff/internal/account"
+	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
-	"github.com/nyambati/skiff/internal/service"
+	"github.com/nyambati/skiff/internal/manifest"
 	"github.com/nyambati/skiff/internal/strategy"
 	"github.com/nyambati/skiff/internal/types"
 	"github.com/sirupsen/logrus"
@@ -25,9 +25,9 @@ import (
 // during processing.
 
 func GetRenderConfig(accountID, labels string) (*strategy.RenderConfig, error) {
-	var serviceCatalog service.Manifest
+	var catalog catalog.Catalog
 	serviceTypesPath := fmt.Sprintf("%s/service-types.yaml", config.Config.Manifests)
-	if err := serviceCatalog.Read(serviceTypesPath); err != nil {
+	if err := catalog.Read(serviceTypesPath); err != nil {
 		return nil, err
 	}
 	manifests, err := loadManifests(accountID)
@@ -35,15 +35,15 @@ func GetRenderConfig(accountID, labels string) (*strategy.RenderConfig, error) {
 		return nil, err
 	}
 
-	return strategy.Execute(manifests, &serviceCatalog, labels), nil
+	return strategy.Execute(manifests, &catalog, labels), nil
 }
 
 // loadManifests reads the account manifests from the manifests folder based on the provided
 // account ID or IDs. If an empty string is provided, it reads all account manifests in the
 // folder. It returns a slice of pointers to Manifest and an error if any issues occur during
 // processing.
-func loadManifests(accountID string) ([]*account.Manifest, error) {
-	var manifests []*account.Manifest
+func loadManifests(accountID string) ([]*manifest.Manifest, error) {
+	var manifests []*manifest.Manifest
 
 	accounts, err := getAccountIDs(accountID)
 	if err != nil {
@@ -52,7 +52,7 @@ func loadManifests(accountID string) ([]*account.Manifest, error) {
 
 	for _, accountID := range accounts {
 		accountID = strings.TrimSuffix(accountID, filepath.Ext(accountID))
-		m := new(account.Manifest)
+		m := new(manifest.Manifest)
 		if err := m.Read(accountID); err != nil {
 			return nil, err
 		}
@@ -265,7 +265,7 @@ func normalizeYAMLTypes(input any) any {
 	}
 }
 
-func renderDependencies(deps []service.Dependency) string {
+func renderDependencies(deps []catalog.Dependency) string {
 	if len(deps) == 0 {
 		return ""
 	}
