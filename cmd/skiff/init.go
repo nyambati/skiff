@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -15,7 +16,7 @@ import (
 //go:embed templates/terragrunt.default.tmpl
 var terragruntDefaultTemplate []byte
 
-//go:embed templates/service-types.yaml
+//go:embed templates/catalog.yaml
 var serviceTypesTemplate []byte
 
 //go:embed templates/skiff.yaml
@@ -25,12 +26,9 @@ var skiffConfigTemplate []byte
 var initCmd = &cobra.Command{
 	Use:   "init [path] [flags]",
 	Short: "Initialize a new Skiff project",
-	Long: `Creates the required folder structure for a Skiff project, including:
-- manifests/ (with an empty service-types.yaml)
-- templates/ (with a default terragrunt.default.tmpl)
-`,
+	Long:  "Creates the required folder structure for a Skiff project.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return initProject(".", verbose, force)
+		return initProject(".", force)
 	},
 }
 
@@ -38,7 +36,7 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 }
 
-func initProject(path string, verbose bool, force bool) error {
+func initProject(path string, force bool) error {
 	config := []struct {
 		Folder   string
 		File     string
@@ -46,17 +44,17 @@ func initProject(path string, verbose bool, force bool) error {
 	}{
 		{
 			Folder:   "manifests",
-			File:     "service-types.yaml",
+			File:     config.CatalogFile,
 			Template: serviceTypesTemplate,
 		},
 		{
 			Folder:   "templates",
-			File:     "terragrunt.default.tmpl",
+			File:     config.TerragruntTemplateFile,
 			Template: terragruntDefaultTemplate,
 		},
 		{
 			Folder:   ".",
-			File:     ".skiff",
+			File:     config.SkiffConfigFile,
 			Template: skiffConfigTemplate,
 		},
 	}

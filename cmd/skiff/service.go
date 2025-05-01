@@ -56,7 +56,7 @@ func addService(ctx context.Context, manifestName string, path string) error {
 		return err
 	}
 
-	if err := svcCatalog.Read(fmt.Sprintf("%s/service-types.yaml", path)); err != nil {
+	if err := svcCatalog.Read(fmt.Sprintf("%s/%s", path, config.CatalogFile)); err != nil {
 		return err
 	}
 
@@ -65,7 +65,7 @@ func addService(ctx context.Context, manifestName string, path string) error {
 		return err
 	}
 
-	existingContent, err := utils.ToYAML(catalog.DefaultService(serviceType))
+	existingContent, err := utils.ToYAML(catalog.DefaultService(serviceName, serviceType))
 	if err != nil {
 		return err
 	}

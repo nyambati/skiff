@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig"
+	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/types"
 	"github.com/nyambati/skiff/internal/utils"
 	"gopkg.in/yaml.v2"
@@ -78,7 +79,7 @@ func (s *Service) ResolveType(path string) (*Service, error) {
 		return nil, fmt.Errorf("service type is required")
 	}
 
-	buff, err := os.ReadFile(fmt.Sprintf("%s/service-types.yaml", path))
+	buff, err := os.ReadFile(fmt.Sprintf("%s/%s", path, config.CatalogFile))
 	if err != nil {
 		return nil, err
 	}
@@ -254,15 +255,15 @@ func ServiceFromYAML(data []byte) (*Service, error) {
 	return &svc, nil
 }
 
-func DefaultService(name string) *Service {
+func DefaultService(name, serviceType string) *Service {
 	return &Service{
-		Type:    "default",
+		Type:    serviceType,
 		Scope:   ScopeRegional,
 		Version: "1.0",
 		Region:  "us-east-1",
 		Inputs:  map[string]any{},
 		Labels: map[string]any{
-			"type":  "default",
+			"type":  serviceType,
 			"scope": ScopeRegional,
 			"name":  name,
 		},

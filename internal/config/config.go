@@ -5,6 +5,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	Service                = "service"
+	CatalogFile            = "catalog.yaml"
+	TerragruntTemplateFile = "terragrunt.default.tmpl"
+	SkiffConfigFile        = ".skiff"
+)
+
 func New(command string) (*Config, error) {
 	config := new(Config)
 

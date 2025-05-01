@@ -1,14 +1,15 @@
 package cmd
 
 import (
-	"fmt"
+	"strings"
 
-	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/manifest"
+	"github.com/nyambati/skiff/internal/utils"
 	"github.com/spf13/cobra"
 )
 
 var name string
+var metadata string
 
 var addAccountCmd = &cobra.Command{
 	Use:   "manifest [flags]",
@@ -16,25 +17,23 @@ var addAccountCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 
-		config, ok := ctx.Value("config").(*config.Config)
-		if !ok {
-			return fmt.Errorf("config not found")
-		}
-
 		manifest, err := manifest.Read(ctx, name)
 		if err != nil {
 			return err
 		}
 
-		if err := manifest.Write(verbose, force); err != nil {
-			return err
+		metadata := utils.ParseKeyValueFlag(metadata)
+
+		for k, v := range metadata {
+			manifest.Metadata[strings.ToLower(k)] = v
 		}
-		fmt.Printf("✅ Account %s has been added to %s\n", name, config.Manifests)
-		return nil
+
+		return manifest.Write(verbose, force)
 	},
 }
 
 func init() {
 	addAccountCmd.Flags().StringVar(&name, "name", "", "manifest identifier ")
+	addAccountCmd.Flags().StringVar(&metadata, "metadata", "", "manifestmetadata")
 	addAccountCmd.MarkFlagRequired("name")
 }

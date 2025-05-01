@@ -24,7 +24,7 @@ var addCatalogCmd = &cobra.Command{
 		if !ok {
 			return fmt.Errorf("config not found")
 		}
-		path := filepath.Join(cfg.Manifests, "service-types.yaml")
+		path := filepath.Join(cfg.Manifests, config.CatalogFile)
 
 		if err := svcCatalog.Read(path); err != nil {
 			return err

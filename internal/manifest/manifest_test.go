@@ -143,7 +143,7 @@ func TestManifestResolve(t *testing.T) {
 			},
 		}
 
-		// Create service-types.yaml
+		// Create catalog.yaml
 		serviceTypesContent := `
 apiVersion: v1
 types:
@@ -153,7 +153,7 @@ types:
     version: latest
     group: default
 `
-		serviceTypesPath := filepath.Join(tempDir, "service-types.yaml")
+		serviceTypesPath := filepath.Join(tempDir, config.CatalogFile)
 		err := os.WriteFile(serviceTypesPath, []byte(serviceTypesContent), 0644)
 		require.NoError(t, err)
 

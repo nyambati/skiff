@@ -24,7 +24,7 @@ Inspired by Kubernetes-style configuration and GitOps practices, Skiff provides 
 .
 ├── .skiff              # Project config (includes strategy)
 ├── manifests/          # Service types + account definitions
-│   ├── service-types.yaml
+│   ├── catalog.yaml
 │   └── 123456789012.yaml
 ├── templates/          # Terragrunt templates
 │   └── terragrunt.default.tmpl
@@ -64,7 +64,7 @@ Variables provided per service:
 
 ## 📌 Example Manifests
 
-### service-types.yaml
+### catalog.yaml
 
 ```yaml
 apiVersion: v1

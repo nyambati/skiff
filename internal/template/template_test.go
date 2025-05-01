@@ -14,7 +14,7 @@ var skiffConfig *config.Config
 
 func setupTestManifestsDir(t *testing.T) string {
 	// Create a temporary directory for test manifests
-	tempDir, err := os.MkdirTemp("", "skiff-test-manifests")
+	tempDir, err := os.MkdirTemp("", "skiff")
 	require.NoError(t, err)
 
 	// Ensure config is initialized
@@ -33,14 +33,14 @@ func setupTestManifestsDir(t *testing.T) string {
 	return tempDir
 }
 
-func TestGetAccountIDs(t *testing.T) {
+func TestGetManifestIDs(t *testing.T) {
 	tempDir := setupTestManifestsDir(t)
 
 	// Create some test manifest files
 	testFiles := []string{
 		"account1.yaml",
 		"account2.yaml",
-		"service-types.yaml", // should be ignored
+		"catalog.yaml", // should be ignored
 	}
 
 	for _, filename := range testFiles {
@@ -50,12 +50,12 @@ func TestGetAccountIDs(t *testing.T) {
 	}
 
 	// Test with empty accountID (should return all non-service-types files)
-	accountIDs, err := getAccountIDs("", tempDir)
+	accountIDs, err := getManifestIdetifiers("", tempDir)
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"account1.yaml", "account2.yaml"}, accountIDs)
 
 	// Test with specific accountID
-	accountIDs, err = getAccountIDs("account1.yaml", tempDir)
+	accountIDs, err = getManifestIdetifiers("account1.yaml", tempDir)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"account1.yaml"}, accountIDs)
 }

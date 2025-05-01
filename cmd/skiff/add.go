@@ -9,7 +9,7 @@ import (
 
 // addCmd represents the add command
 var addCmd = &cobra.Command{
-	Use:   "add [account|service|service-type] [flags]",
+	Use:   "add [manifest| catalog] [flags]",
 	Short: "Add a new account, service, or service type",
 	Args:  cobra.MinimumNArgs(0),
 }

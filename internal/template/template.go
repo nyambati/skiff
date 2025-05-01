@@ -20,7 +20,7 @@ import (
 )
 
 // getRenderConfig retrieves the render configuration based on the provided strategy name,
-// account ID, and labels. It reads the service catalog from the service-types.yaml file,
+// account ID, and labels. It reads the service catalog from the catalog file,
 // loads the account manifests, and applies the selected strategy to generate the render
 // configuration. Returns a pointer to the RenderConfig and an error if any issues occur
 // during processing.
@@ -32,7 +32,7 @@ func GetRenderConfig(ctx context.Context, manifestID, labels string) (*strategy.
 		return nil, fmt.Errorf("config not found in context")
 	}
 
-	serviceTypesPath := fmt.Sprintf("%s/service-types.yaml", cfg.Manifests)
+	serviceTypesPath := fmt.Sprintf("%s/%s", cfg.Manifests, config.CatalogFile)
 	if err := catalog.Read(serviceTypesPath); err != nil {
 		return nil, err
 	}
@@ -48,10 +48,10 @@ func GetRenderConfig(ctx context.Context, manifestID, labels string) (*strategy.
 // account ID or IDs. If an empty string is provided, it reads all account manifests in the
 // folder. It returns a slice of pointers to Manifest and an error if any issues occur during
 // processing.
-func loadManifests(ctx context.Context, accountID, manifestPath string) ([]*manifest.Manifest, error) {
+func loadManifests(ctx context.Context, manifestName, manifestPath string) ([]*manifest.Manifest, error) {
 	var manifests []*manifest.Manifest
 
-	accounts, err := getAccountIDs(accountID, manifestPath)
+	accounts, err := getManifestIdetifiers(manifestName, manifestPath)
 	if err != nil {
 		return nil, err
 	}
@@ -75,9 +75,9 @@ func loadManifests(ctx context.Context, accountID, manifestPath string) ([]*mani
 // provided account ID. If an empty string is provided, it reads all account manifest IDs
 // in the folder. It returns a slice of strings containing the account IDs and an error
 // if any issues occur during processing.
-func getAccountIDs(accountID, manifestPath string) ([]string, error) {
-	if accountID != "" {
-		return []string{accountID}, nil
+func getManifestIdetifiers(manifestName, manifestPath string) ([]string, error) {
+	if manifestName != "" {
+		return []string{manifestName}, nil
 	}
 
 	manifestDir, err := os.ReadDir(manifestPath)
@@ -85,18 +85,25 @@ func getAccountIDs(accountID, manifestPath string) ([]string, error) {
 		return nil, fmt.Errorf("failed to read manifests directory: %w", err)
 	}
 
-	var accountIDs []string
+	var manifestIDs []string
 	for _, entry := range manifestDir {
-		if !entry.IsDir() && !strings.Contains(entry.Name(), "service-types") && strings.HasSuffix(entry.Name(), ".yaml") {
-			accountIDs = append(accountIDs, entry.Name())
+		if isValidIdentifier(entry) {
+			fmt.Println(entry.Name())
+			manifestIDs = append(manifestIDs, entry.Name())
 		}
 	}
 
-	if len(accountIDs) == 0 {
+	if len(manifestIDs) == 0 {
 		return nil, fmt.Errorf("no account manifests found in %s", manifestPath)
 	}
 
-	return accountIDs, nil
+	return manifestIDs, nil
+}
+
+func isValidIdentifier(entry os.DirEntry) bool {
+	return !entry.IsDir() &&
+		entry.Name() != config.CatalogFile &&
+		strings.HasSuffix(entry.Name(), ".yaml")
 }
 
 // Render generates Terragrunt configuration files based on the provided strategy,

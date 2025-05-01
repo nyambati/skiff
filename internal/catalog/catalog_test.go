@@ -28,7 +28,7 @@ func setupTestConfig(t *testing.T) string {
 }
 
 func createServiceTypesFile(t *testing.T, tempDir string, content string) {
-	serviceTypesPath := filepath.Join(tempDir, "service-types.yaml")
+	serviceTypesPath := filepath.Join(tempDir, config.CatalogFile)
 	err := os.WriteFile(serviceTypesPath, []byte(content), 0644)
 	require.NoError(t, err)
 }

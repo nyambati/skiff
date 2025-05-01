@@ -11,6 +11,7 @@ import (
 	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/types"
 	"github.com/nyambati/skiff/internal/utils"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -41,7 +42,7 @@ func (m *Manifest) Write(verbose, force bool) error {
 	}
 
 	if utils.FileExists(m.filepath) && !force {
-		fmt.Printf("skipping, manifest %s already exists, use --force to overwrite\n", m.Name)
+		log.Infof("skipping, manifest %s already exists, use --force to overwrite\n", m.Name)
 		return nil
 	}
 
@@ -49,6 +50,7 @@ func (m *Manifest) Write(verbose, force bool) error {
 		return err
 	}
 
+	log.Infof(" ✅ manifest %s has been updated successfully\n", m.Name)
 	return nil
 }
 
