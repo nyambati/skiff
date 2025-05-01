@@ -18,7 +18,7 @@ func terragruntCommands(commands []string) []*cobra.Command {
 			Use:   command,
 			Short: "Runs terragrunt " + command + " command",
 			Run: func(cmd *cobra.Command, args []string) {
-				if err := terragrunt.Run(command, accountID, labels, dryRun); err != nil {
+				if err := terragrunt.Run(cmd.Context(), command, name, labels, dryRun); err != nil {
 					cmd.PrintErr(err)
 					os.Exit(1)
 				}

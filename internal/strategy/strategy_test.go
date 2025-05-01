@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
@@ -11,9 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var skiffConfig *config.Config
+
 func TestExecute(t *testing.T) {
 	// Setup mock config
-	config.Config = &config.SkiffConfig{
+	skiffConfig = &config.Config{
 		Path: config.Path{
 			Templates:  "mock/templates",
 			Terragrunt: "mock/terragrunt",
@@ -45,8 +48,8 @@ func TestExecute(t *testing.T) {
 			catalog: &catalog.Catalog{},
 			labels:  "",
 			expectedConfig: &RenderConfig{{
-				Template:     filepath.Join(config.Config.Path.Templates, defaultTemplate),
-				TargetFolder: filepath.Join(config.Config.Path.Terragrunt, "test/path"),
+				Template:     filepath.Join(skiffConfig.Path.Templates, defaultTemplate),
+				TargetFolder: filepath.Join(skiffConfig.Path.Terragrunt, "test/path"),
 				Context: &types.TemplateContext{
 					"name": "test-service",
 				},
@@ -73,8 +76,8 @@ func TestExecute(t *testing.T) {
 			catalog: &catalog.Catalog{},
 			labels:  "env=dev",
 			expectedConfig: &RenderConfig{{
-				Template:     filepath.Join(config.Config.Path.Templates, "custom.tmpl"),
-				TargetFolder: filepath.Join(config.Config.Path.Terragrunt, "custom/path"),
+				Template:     filepath.Join(skiffConfig.Path.Templates, "custom.tmpl"),
+				TargetFolder: filepath.Join(skiffConfig.Path.Terragrunt, "custom/path"),
 				Context: &types.TemplateContext{
 					"name": "custom-service",
 				},
@@ -106,7 +109,8 @@ func TestExecute(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := Execute(tc.manifests, tc.catalog, tc.labels)
+			ctx := context.WithValue(context.Background(), "config", skiffConfig)
+			result := Execute(ctx, tc.manifests, tc.catalog, tc.labels)
 			assert.Equal(t, tc.expectedConfig, result)
 		})
 	}

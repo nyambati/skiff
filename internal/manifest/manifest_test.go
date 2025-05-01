@@ -1,29 +1,33 @@
 package manifest
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
+	"github.com/nyambati/skiff/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+var skiffConfig *config.Config
+
 func createTempManifestFile(t *testing.T, content string) string {
 	// Create a temporary directory
 	tempDir := t.TempDir()
-	config.Config = &config.SkiffConfig{
-		Path: config.Path{
-			Manifests: tempDir,
-		},
-	}
-
 	// Create a temporary manifest file
 	manifestPath := filepath.Join(tempDir, "1234567890.yaml")
 	err := os.WriteFile(manifestPath, []byte(content), 0644)
 	require.NoError(t, err)
+
+	skiffConfig = &config.Config{
+		Path: config.Path{
+			Manifests: tempDir,
+		},
+	}
 
 	return "1234567890"
 }
@@ -32,7 +36,7 @@ func TestManifestRead(t *testing.T) {
 	testCases := []struct {
 		name             string
 		manifestContent  string
-		expectedAccount  Account
+		expectedMetadata types.Metadata
 		expectedServices map[string]catalog.Service
 	}{
 		{
@@ -40,10 +44,10 @@ func TestManifestRead(t *testing.T) {
 			manifestContent: `
 apiVersion: v1
 account:
+
+metadata:
   name: Test Account
   id: "1234567890"
-metadata:
-  description: Test account
 services:
   web-service:
     type: web
@@ -51,9 +55,9 @@ services:
     labels:
       env: production
 `,
-			expectedAccount: Account{
-				Name: "Test Account",
-				ID:   "1234567890",
+			expectedMetadata: types.Metadata{
+				"name": "Test Account",
+				"id":   "1234567890",
 			},
 			expectedServices: map[string]catalog.Service{
 				"web-service": {
@@ -69,7 +73,7 @@ services:
 			name: "Manifest with multiple services",
 			manifestContent: `
 apiVersion: v1
-account:
+metadata:
   name: Multi Service Account
   id: "0987654321"
 services:
@@ -80,9 +84,9 @@ services:
     type: api
     region: us-east-1
 `,
-			expectedAccount: Account{
-				Name: "Multi Service Account",
-				ID:   "0987654321",
+			expectedMetadata: types.Metadata{
+				"name": "Multi Service Account",
+				"id":   "0987654321",
 			},
 			expectedServices: map[string]catalog.Service{
 				"db-service": {
@@ -100,16 +104,17 @@ services:
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create a temporary manifest file
-			manifestPath := createTempManifestFile(t, tc.manifestContent)
+			manifestName := createTempManifestFile(t, tc.manifestContent)
+
+			ctx := context.WithValue(context.Background(), "config", skiffConfig)
 
 			// Create a new Manifest and read the file
-			manifest := new(Manifest)
-			err := manifest.Read(manifestPath)
+
+			manifest, err := Read(ctx, manifestName)
 			require.NoError(t, err)
 
-			// Verify account details
-			assert.Equal(t, tc.expectedAccount.Name, manifest.Account.Name)
-			assert.Equal(t, tc.expectedAccount.ID, manifest.Account.ID)
+			// Verify metadata details
+			assert.Equal(t, tc.expectedMetadata, manifest.Metadata)
 
 			// Verify services
 			require.Len(t, manifest.Services, len(tc.expectedServices))
@@ -129,7 +134,7 @@ func TestManifestResolve(t *testing.T) {
 	t.Run("Resolve method", func(t *testing.T) {
 		// Create a temporary directory
 		tempDir := t.TempDir()
-		config.Config = &config.SkiffConfig{
+		skiffConfig = &config.Config{
 			Path: config.Path{
 				Manifests: tempDir,
 			},
@@ -153,20 +158,13 @@ types:
 		require.NoError(t, err)
 
 		// Create a test manifest with services
-		manifest := &Manifest{
-			Account: Account{
-				ID:   "test-account",
-				Name: "Test Account",
-			},
-			Services: map[string]catalog.Service{
-				"test-service": {
-					Type: "web",
-				},
-			},
-		}
+		ctx := context.WithValue(context.Background(), "config", skiffConfig)
 
+		m, err := Read(ctx, "1234567890")
+
+		require.NoError(t, err)
 		// Call Resolve method
-		err = manifest.Resolve()
+		err = m.Resolve(ctx)
 
 		// Verify no error occurs
 		assert.NoError(t, err)

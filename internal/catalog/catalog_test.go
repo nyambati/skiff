@@ -11,15 +11,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var skiffConfig *config.Config
+
 func setupTestConfig(t *testing.T) string {
 	// Create a temporary directory
 	tempDir := t.TempDir()
-	config.Config = &config.SkiffConfig{
+	skiffConfig = &config.Config{
 		Path: config.Path{
 			Manifests: tempDir,
 		},
 		Strategy: config.Strategy{
-			Template: "{{var.account_id}}/regions/{{var.region}}/{{var.service}}",
+			Template: "{{var.id}}/regions/{{var.region}}/{{var.service}}",
 		},
 	}
 	return tempDir
@@ -163,10 +165,9 @@ func TestServiceReconcile(t *testing.T) {
 			"environment": "production",
 		}
 
-		reconciled := service.Reconcile("123456", metadata)
+		reconciled := service.Reconcile(metadata)
 
 		assert.Equal(t, "1.0.0", reconciled.Version)
-		assert.Equal(t, "123456", reconciled.Inputs["account_id"])
 		assert.Equal(t, "us-west-2", reconciled.Inputs["region"])
 		assert.Equal(t, "production", reconciled.Labels["environment"])
 	})
@@ -186,7 +187,7 @@ func TestServiceReconcile(t *testing.T) {
 			"environment": "production",
 		}
 
-		reconciled := service.Reconcile("123456", metadata)
+		reconciled := service.Reconcile(metadata)
 
 		assert.Equal(t, "engineering", reconciled.Labels["team"])
 		assert.Equal(t, "production", reconciled.Labels["environment"])
@@ -194,6 +195,11 @@ func TestServiceReconcile(t *testing.T) {
 }
 
 func TestBuildTemplateContext(t *testing.T) {
+	metadata := types.Metadata{
+		"id":   "123456",
+		"name": "TestAccount",
+	}
+
 	t.Run("Build Template Context", func(t *testing.T) {
 		service := &Service{
 			Type:   "web",
@@ -213,12 +219,12 @@ func TestBuildTemplateContext(t *testing.T) {
 			},
 		}
 
-		err := service.BuildTemplateContext("web-service", "123456", "TestAccount")
+		err := service.BuildTemplateContext("web-service", metadata)
 		require.NoError(t, err)
 
 		assert.NotNil(t, service.TemplateContext)
-		assert.Equal(t, "123456", service.TemplateContext["account_id"])
-		assert.Equal(t, "TestAccount", service.TemplateContext["account_name"])
+		assert.Equal(t, "123456", service.TemplateContext["id"])
+		assert.Equal(t, "TestAccount", service.TemplateContext["name"])
 		assert.Equal(t, "web-service", service.TemplateContext["service"])
 		assert.Equal(t, "global", service.TemplateContext["scope"])
 		assert.Equal(t, "us-west-2", service.TemplateContext["region"])
@@ -239,12 +245,10 @@ func TestBuildTemplateContext(t *testing.T) {
 			ResolvedType: &ServiceType{},
 		}
 
-		err := service.BuildTemplateContext("web-service", "123456", "TestAccount")
+		err := service.BuildTemplateContext("web-service", metadata)
 		require.NoError(t, err)
 
 		assert.NotNil(t, service.TemplateContext)
-		assert.Equal(t, "123456", service.TemplateContext["account_id"])
-		assert.Equal(t, "TestAccount", service.TemplateContext["account_name"])
 		assert.Equal(t, "web-service", service.TemplateContext["service"])
 		assert.Equal(t, "us-west-2", service.TemplateContext["region"])
 		assert.Equal(t, "", service.TemplateContext["template"])
@@ -267,7 +271,7 @@ func TestBuildTemplateContext(t *testing.T) {
 			},
 		}
 
-		err := service.BuildTemplateContext("web-service", "123456", "TestAccount")
+		err := service.BuildTemplateContext("web-service", metadata)
 		require.NoError(t, err)
 
 		assert.NotNil(t, service.TemplateContext)
@@ -291,10 +295,11 @@ func TestResolveTargetPath(t *testing.T) {
 		}
 
 		metadata := types.Metadata{
+			"id":          "123456",
 			"environment": "production",
 		}
 
-		err := service.ResolveTargetPath("web-service", "123456", "TestAccount", metadata)
+		err := service.ResolveTargetPath("web-service", skiffConfig.Strategy.Template, metadata)
 		require.NoError(t, err)
 
 		assert.Equal(t, "123456/regions/us-west-2/web-service", service.ResolvedTargetPath)

@@ -13,7 +13,7 @@ type (
 		Template    string `yaml:"template"`
 	}
 
-	SkiffConfig struct {
+	Config struct {
 		Version  string   `yaml:"version"`
 		Verbose  bool     `yaml:"verbose"`
 		Strategy Strategy `yaml:"strategy"`

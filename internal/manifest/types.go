@@ -1,17 +1,16 @@
 package manifest
 
-import "github.com/nyambati/skiff/internal/catalog"
+import (
+	"github.com/nyambati/skiff/internal/catalog"
+	"github.com/nyambati/skiff/internal/types"
+)
 
 type (
-	Account struct {
-		Name string `yaml:"name"`
-		ID   string `yaml:"id"`
-	}
-
 	Manifest struct {
+		Name       string                     `yaml:"-"`
 		APIVersion string                     `yaml:"apiVersion,omitempty"`
-		Account    Account                    `yaml:"account,omitempty"`
-		Metadata   map[string]any             `yaml:"metadata,omitempty"`
+		Metadata   types.Metadata             `yaml:"metadata,omitempty"`
 		Services   map[string]catalog.Service `yaml:"services"`
+		filepath   string                     `yaml:"-"`
 	}
 )

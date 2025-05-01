@@ -18,7 +18,7 @@ var generateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "Generates terragrunt configurations files from manifests",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := template.Render(accountID, labels, dryRun); err != nil {
+		if err := template.Render(cmd.Context(), name, labels, dryRun); err != nil {
 			cmd.PrintErr(err)
 			os.Exit(1)
 		}
@@ -27,7 +27,7 @@ var generateCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(generateCmd)
-	generateCmd.Flags().StringVar(&accountID, "account-id", "", "account id to generate terraform configurations for")
+	generateCmd.Flags().StringVar(&name, "name", "", "name of the manifest used to generate terraform configurations")
 	generateCmd.Flags().StringVarP(&labels, "labels", "l", "", "labels to filter terraform configurations to apply to the list of accounts")
 	generateCmd.Flags().BoolVar(&dryRun, "dry-run", false, "dry run, generate")
 }

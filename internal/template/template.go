@@ -2,6 +2,7 @@ package template
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,39 +25,45 @@ import (
 // configuration. Returns a pointer to the RenderConfig and an error if any issues occur
 // during processing.
 
-func GetRenderConfig(accountID, labels string) (*strategy.RenderConfig, error) {
+func GetRenderConfig(ctx context.Context, manifestID, labels string) (*strategy.RenderConfig, error) {
 	var catalog catalog.Catalog
-	serviceTypesPath := fmt.Sprintf("%s/service-types.yaml", config.Config.Manifests)
+	cfg, ok := ctx.Value("config").(*config.Config)
+	if !ok {
+		return nil, fmt.Errorf("config not found in context")
+	}
+
+	serviceTypesPath := fmt.Sprintf("%s/service-types.yaml", cfg.Manifests)
 	if err := catalog.Read(serviceTypesPath); err != nil {
 		return nil, err
 	}
-	manifests, err := loadManifests(accountID)
+	manifests, err := loadManifests(ctx, manifestID, cfg.Manifests)
 	if err != nil {
 		return nil, err
 	}
 
-	return strategy.Execute(manifests, &catalog, labels), nil
+	return strategy.Execute(ctx, manifests, &catalog, labels), nil
 }
 
 // loadManifests reads the account manifests from the manifests folder based on the provided
 // account ID or IDs. If an empty string is provided, it reads all account manifests in the
 // folder. It returns a slice of pointers to Manifest and an error if any issues occur during
 // processing.
-func loadManifests(accountID string) ([]*manifest.Manifest, error) {
+func loadManifests(ctx context.Context, accountID, manifestPath string) ([]*manifest.Manifest, error) {
 	var manifests []*manifest.Manifest
 
-	accounts, err := getAccountIDs(accountID)
+	accounts, err := getAccountIDs(accountID, manifestPath)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, accountID := range accounts {
 		accountID = strings.TrimSuffix(accountID, filepath.Ext(accountID))
-		m := new(manifest.Manifest)
-		if err := m.Read(accountID); err != nil {
+
+		m, err := manifest.Read(ctx, accountID)
+		if err != nil {
 			return nil, err
 		}
-		if err := m.Resolve(); err != nil {
+		if err := m.Resolve(ctx); err != nil {
 			return nil, err
 		}
 		manifests = append(manifests, m)
@@ -68,12 +75,12 @@ func loadManifests(accountID string) ([]*manifest.Manifest, error) {
 // provided account ID. If an empty string is provided, it reads all account manifest IDs
 // in the folder. It returns a slice of strings containing the account IDs and an error
 // if any issues occur during processing.
-func getAccountIDs(accountID string) ([]string, error) {
+func getAccountIDs(accountID, manifestPath string) ([]string, error) {
 	if accountID != "" {
 		return []string{accountID}, nil
 	}
 
-	manifestDir, err := os.ReadDir(config.Config.Path.Manifests)
+	manifestDir, err := os.ReadDir(manifestPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read manifests directory: %w", err)
 	}
@@ -86,7 +93,7 @@ func getAccountIDs(accountID string) ([]string, error) {
 	}
 
 	if len(accountIDs) == 0 {
-		return nil, fmt.Errorf("no account manifests found in %s", config.Config.Path.Manifests)
+		return nil, fmt.Errorf("no account manifests found in %s", manifestPath)
 	}
 
 	return accountIDs, nil
@@ -99,8 +106,8 @@ func getAccountIDs(accountID string) ([]string, error) {
 // rendered files to the specified target folders. Returns an error if any issues occur
 // during the rendering process.
 
-func Render(accountID, labels string, dryRun bool) error {
-	configs, err := GetRenderConfig(accountID, labels)
+func Render(ctx context.Context, accountID, labels string, dryRun bool) error {
+	configs, err := GetRenderConfig(ctx, accountID, labels)
 	if err != nil {
 		return err
 	}

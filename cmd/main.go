@@ -1,10 +1,9 @@
 /*
 Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
 */
 package main
 
-import "github.com/nyambati/skiff/cmd"
+import cmd "github.com/nyambati/skiff/cmd/skiff"
 
 func main() {
 	cmd.Execute()

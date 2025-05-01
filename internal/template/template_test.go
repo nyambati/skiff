@@ -10,23 +10,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var skiffConfig *config.Config
+
 func setupTestManifestsDir(t *testing.T) string {
 	// Create a temporary directory for test manifests
 	tempDir, err := os.MkdirTemp("", "skiff-test-manifests")
 	require.NoError(t, err)
 
 	// Ensure config is initialized
-	if config.Config == nil {
-		config.Config = &config.SkiffConfig{}
+	if skiffConfig == nil {
+		skiffConfig = &config.Config{}
 	}
 
 	// Backup and modify the config
-	originalManifestsDir := config.Config.Manifests
+	originalManifestsDir := skiffConfig.Manifests
 	t.Cleanup(func() {
-		config.Config.Manifests = originalManifestsDir
+		skiffConfig.Manifests = originalManifestsDir
 		os.RemoveAll(tempDir)
 	})
-	config.Config.Manifests = tempDir
+	skiffConfig.Manifests = tempDir
 
 	return tempDir
 }
@@ -48,12 +50,12 @@ func TestGetAccountIDs(t *testing.T) {
 	}
 
 	// Test with empty accountID (should return all non-service-types files)
-	accountIDs, err := getAccountIDs("")
+	accountIDs, err := getAccountIDs("", tempDir)
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"account1.yaml", "account2.yaml"}, accountIDs)
 
 	// Test with specific accountID
-	accountIDs, err = getAccountIDs("account1.yaml")
+	accountIDs, err = getAccountIDs("account1.yaml", tempDir)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"account1.yaml"}, accountIDs)
 }
@@ -61,7 +63,7 @@ func TestGetAccountIDs(t *testing.T) {
 func TestToInputs(t *testing.T) {
 	testCases := []struct {
 		name     string
-		input    interface{}
+		input    any
 		expected string
 	}{
 		{

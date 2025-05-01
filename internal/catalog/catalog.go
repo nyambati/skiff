@@ -9,8 +9,6 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig"
-
-	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/types"
 	"github.com/nyambati/skiff/internal/utils"
 	"gopkg.in/yaml.v2"
@@ -98,7 +96,7 @@ func (s *Service) ResolveType(path string) (*Service, error) {
 	return s, nil
 }
 
-func (s *Service) Reconcile(accountId string, metadata types.Metadata) *Service {
+func (s *Service) Reconcile(metadata types.Metadata) *Service {
 	if s.Version == "" {
 		s.Version = s.ResolvedType.Version
 	}
@@ -115,25 +113,17 @@ func (s *Service) Reconcile(accountId string, metadata types.Metadata) *Service 
 		s.Inputs = map[string]any{}
 	}
 
-	s.Inputs["account_id"] = accountId
 	s.Inputs["region"] = s.Region
 	s.Inputs["tags"] = s.Labels
 	return s
 }
 
-func (s *Service) buildStrategyContext(
-	svcName,
-	accountID,
-	accountName string,
-	metadata types.Metadata,
-) types.StrategyContext {
+func (s *Service) buildStrategyContext(svcName string, metadata types.Metadata) types.StrategyContext {
 	context := types.StrategyContext{
-		"service":      svcName,
-		"region":       s.Region,
-		"type":         s.Type,
-		"account_id":   accountID,
-		"account_name": accountName,
-		"group":        s.ResolvedType.Group,
+		"service": svcName,
+		"region":  s.Region,
+		"type":    s.Type,
+		"group":   s.ResolvedType.Group,
 	}
 
 	for key, value := range metadata {
@@ -146,15 +136,14 @@ func (s *Service) buildStrategyContext(
 	return context
 }
 
-func (s *Service) BuildTemplateContext(serviceName, accountID, accountName string) error {
+func (s *Service) BuildTemplateContext(serviceName string, metadata types.Metadata) error {
 	ctx := types.TemplateContext{
-		"account_id":   accountID,
-		"account_name": accountName,
-		"service":      serviceName,
-		"scope":        s.Scope,
-		"region":       s.Region,
-		"version":      s.Version,
+		"service": serviceName,
+		"scope":   s.Scope,
+		"region":  s.Region,
+		"version": s.Version,
 	}
+
 	data, err := utils.ToMap(s.ResolvedType)
 	if err != nil {
 		return err
@@ -162,6 +151,14 @@ func (s *Service) BuildTemplateContext(serviceName, accountID, accountName strin
 
 	for k, v := range data {
 		ctx[strings.ToLower(k)] = v
+	}
+
+	for key, value := range s.Labels {
+		ctx[strings.ToLower(key)] = value
+	}
+
+	for key, value := range metadata {
+		ctx[strings.ToLower(key)] = value
 	}
 
 	ctx["inputs"] = s.Inputs
@@ -172,15 +169,14 @@ func (s *Service) BuildTemplateContext(serviceName, accountID, accountName strin
 
 func (s *Service) ResolveTargetPath(
 	svcName,
-	accountID,
-	accountName string,
+	strategyTemplate string,
 	metadata types.Metadata,
 ) error {
-	strategyContext := s.buildStrategyContext(svcName, accountID, accountName, metadata)
+	strategyContext := s.buildStrategyContext(svcName, metadata)
 	tmpl, err := template.New("target_path").
 		Funcs(sprig.FuncMap()).
 		Funcs(template.FuncMap{"var": func() types.StrategyContext { return strategyContext }}).
-		Parse(config.Config.Strategy.Template)
+		Parse(strategyTemplate)
 	if err != nil {
 		return err
 	}
@@ -202,8 +198,8 @@ func validatePath(buffer *bytes.Buffer) (string, error) {
 }
 
 func (s *Service) ResolveDependencies(
-	accountID,
-	accountName,
+	manifestName,
+	manifestPath string,
 	strategyTemplate string,
 	services map[string]Service,
 	metadata types.Metadata,
@@ -221,9 +217,9 @@ func (s *Service) ResolveDependencies(
 			continue
 		}
 
-		targetSvc.Reconcile(accountID, metadata)
-		targetSvc.ResolveType(config.Config.Manifests)
-		targetSvc.ResolveTargetPath(depName, accountID, accountName, metadata)
+		targetSvc.Reconcile(metadata)
+		targetSvc.ResolveType(manifestPath)
+		targetSvc.ResolveTargetPath(depName, strategyTemplate, metadata)
 
 		relPath, err := filepath.Rel(s.ResolvedTargetPath, targetSvc.ResolvedTargetPath)
 		if err != nil {

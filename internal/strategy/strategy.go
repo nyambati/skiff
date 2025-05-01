@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"context"
 	"path/filepath"
 
 	"github.com/nyambati/skiff/internal/catalog"
@@ -37,10 +38,14 @@ var defaultTemplate = "terragrunt.default.tmpl"
 //     template path, target folder, and service data
 //
 // The function returns a pointer to the renderConfigs slice.
-func Execute(manifests []*manifest.Manifest, catalog *catalog.Catalog, labels string) *RenderConfig {
+func Execute(ctx context.Context, manifests []*manifest.Manifest, catalog *catalog.Catalog, labels string) *RenderConfig {
+	cfg, ok := ctx.Value("config").(*config.Config)
+	if !ok {
+		return nil
+	}
 	renderConfigs := make(RenderConfig, 0, len(manifests))
-	for _, manifest := range manifests {
-		for _, svc := range manifest.Services {
+	for _, m := range manifests {
+		for _, svc := range m.Services {
 			if labels != "" && !utils.HasLabels(svc.Labels, utils.ParseKeyValueFlag(labels)) {
 				continue
 			}
@@ -50,11 +55,11 @@ func Execute(manifests []*manifest.Manifest, catalog *catalog.Catalog, labels st
 				templatePath = defaultTemplate
 			}
 
-			templatePath = filepath.Join(config.Config.Templates, templatePath)
+			templatePath = filepath.Join(cfg.Templates, templatePath)
 
 			renderConfigs = append(renderConfigs, Config{
 				Template:     templatePath,
-				TargetFolder: utils.SanitizePath(filepath.Join(config.Config.Terragrunt, svc.ResolvedTargetPath)),
+				TargetFolder: utils.SanitizePath(filepath.Join(cfg.Terragrunt, svc.ResolvedTargetPath)),
 				Context:      &svc.TemplateContext,
 			})
 		}

@@ -1,35 +1,54 @@
 package manifest
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
+	"github.com/nyambati/skiff/internal/types"
 	"github.com/nyambati/skiff/internal/utils"
 	"gopkg.in/yaml.v2"
 )
 
-func NewManifest(version, name, id string) *Manifest {
-	return &Manifest{
-		APIVersion: "v1",
-		Account: Account{
-			Name: name,
-			ID:   id,
-		},
+func Read(ctx context.Context, manifestName string) (*Manifest, error) {
+	config, ok := ctx.Value("config").(*config.Config)
+	if !ok {
+		return nil, fmt.Errorf("config not found")
 	}
+
+	m := &Manifest{
+		APIVersion: "v1",
+		Name:       manifestName,
+		Metadata:   types.Metadata{"name": manifestName},
+		filepath:   filepath.Join(config.Manifests, fmt.Sprintf("%s.yaml", manifestName)),
+	}
+
+	if err := m.read(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
-func (m *Manifest) Write(path string, verbose, force bool) error {
+func (m *Manifest) Write(verbose, force bool) error {
 	data, err := m.ToYAML()
 	if err != nil {
 		return err
 	}
-	path = filepath.Join(path, fmt.Sprintf("%s.yaml", m.Account.ID))
-	if err := utils.WriteFile(path, data); err != nil {
+
+	if utils.FileExists(m.filepath) && !force {
+		fmt.Printf("skipping, manifest %s already exists, use --force to overwrite\n", m.Name)
+		return nil
+	}
+
+	if err := utils.WriteFile(m.filepath, data); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -37,8 +56,12 @@ func (m *Manifest) ToYAML() ([]byte, error) {
 	return yaml.Marshal(m)
 }
 
-func (m *Manifest) Read(accountID string) error {
-	buff, err := os.ReadFile(fmt.Sprintf("%s/%s.yaml", config.Config.Manifests, accountID))
+func (m *Manifest) read() error {
+	if !utils.FileExists(m.filepath) {
+		return nil
+	}
+
+	buff, err := os.ReadFile(m.filepath)
 	if err != nil {
 		return err
 	}
@@ -49,29 +72,34 @@ func (m *Manifest) Read(accountID string) error {
 	return nil
 }
 
-func (m *Manifest) Resolve() error {
+func (m *Manifest) Resolve(ctx context.Context) error {
+	config, ok := ctx.Value("config").(*config.Config)
+	if !ok {
+		return fmt.Errorf("config not found")
+	}
+
 	for svcName, svc := range m.Services {
-		rSvc, err := svc.ResolveType(config.Config.Manifests)
+		rSvc, err := svc.ResolveType(strings.TrimSuffix(m.filepath, m.Name))
 		if err != nil {
 			return err
 		}
 		// Reconcile service
-		rSvc.Reconcile(m.Account.ID, m.Metadata)
+		rSvc.Reconcile(m.Metadata)
 
-		err = rSvc.ResolveTargetPath(svcName, m.Account.ID, m.Account.Name, m.Metadata)
+		err = rSvc.ResolveTargetPath(svcName, config.Strategy.Template, m.Metadata)
 		if err != nil {
 			return err
 		}
 
 		rSvc.ResolveDependencies(
-			m.Account.ID,
-			m.Account.Name,
-			config.Config.Strategy.Template,
+			m.Name,
+			config.Manifests,
+			config.Strategy.Template,
 			m.Services,
 			m.Metadata,
 		)
 
-		if err := rSvc.BuildTemplateContext(svcName, m.Account.ID, m.Account.Name); err != nil {
+		if err := rSvc.BuildTemplateContext(svcName, m.Metadata); err != nil {
 			return err
 		}
 

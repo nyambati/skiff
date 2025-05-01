@@ -4,6 +4,7 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"context"
 	"os"
 	"strings"
 
@@ -15,14 +16,14 @@ import (
 var verbose bool
 var force bool
 var logger *logrus.Logger
-
 var rootCmd = &cobra.Command{
 	Use:   "skiff",
 	Short: "A tool to generate and apply Terragrunt configurations from YAML manifests",
 	Long: `Skiff is a CLI tool that helps you define, generate,
 and apply infrastructure using a declarative YAML format and Terragrunt.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		if err := config.Load(cmd.Name()); err != nil {
+		cfg, err := config.New(cmd.Name())
+		if err != nil {
 			if strings.Contains(err.Error(), "Not Found") {
 				cmd.Println("❌ Missing .skiff file. Run `skiff init` to create one ")
 				os.Exit(1)
@@ -30,6 +31,9 @@ and apply infrastructure using a declarative YAML format and Terragrunt.`,
 			logrus.Error(err)
 			os.Exit(1)
 		}
+
+		ctx := context.WithValue(context.Background(), "config", cfg)
+		cmd.SetContext(ctx)
 	},
 }
 
