@@ -39,7 +39,7 @@ var defaultTemplate = "terragrunt.default.tmpl"
 //
 // The function returns a pointer to the renderConfigs slice.
 func Execute(ctx context.Context, manifests []*manifest.Manifest, catalog *catalog.Catalog, labels string) *RenderConfig {
-	cfg, ok := ctx.Value("config").(*config.Config)
+	cfg, ok := ctx.Value(config.ContextKey).(*config.Config)
 	if !ok {
 		return nil
 	}

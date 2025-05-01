@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,11 +14,6 @@ import (
 	"github.com/nyambati/skiff/internal/types"
 	"github.com/nyambati/skiff/internal/utils"
 	"gopkg.in/yaml.v2"
-)
-
-const (
-	ScopeRegional = "regional"
-	ScopeGlobal   = "global"
 )
 
 func (c *Catalog) ToYAML() ([]byte, error) {
@@ -74,12 +70,16 @@ func (c *Catalog) GetServiceType(name string) (*ServiceType, bool) {
 
 }
 
-func (s *Service) ResolveType(path string) (*Service, error) {
+func (s *Service) ResolveType(ctx context.Context) (*Service, error) {
+	cfg, ok := ctx.Value(config.ContextKey).(*config.Config)
+	if !ok {
+		return nil, fmt.Errorf("config not found")
+	}
 	if s.Type == "" {
 		return nil, fmt.Errorf("service type is required")
 	}
 
-	buff, err := os.ReadFile(fmt.Sprintf("%s/%s", path, config.CatalogFile))
+	buff, err := os.ReadFile(fmt.Sprintf("%s/%s", cfg.Manifests, config.CatalogFile))
 	if err != nil {
 		return nil, err
 	}
@@ -106,25 +106,26 @@ func (s *Service) Reconcile(metadata types.Metadata) *Service {
 		s.Labels = map[string]any{}
 	}
 
-	for key, value := range metadata {
-		s.Labels[key] = value
+	for key, value := range s.Labels {
+		metadata[key] = value
 	}
 
 	if len(s.Inputs) == 0 {
 		s.Inputs = map[string]any{}
 	}
 
-	s.Inputs["region"] = s.Region
-	s.Inputs["tags"] = s.Labels
+	s.Inputs[config.RegionKey] = s.Region
+	s.Inputs[config.TagsKey] = metadata
+	s.Labels = metadata
 	return s
 }
 
 func (s *Service) buildStrategyContext(svcName string, metadata types.Metadata) types.StrategyContext {
 	context := types.StrategyContext{
-		"service": svcName,
-		"region":  s.Region,
-		"type":    s.Type,
-		"group":   s.ResolvedType.Group,
+		config.ServiceKey: svcName,
+		config.RegionKey:  s.Region,
+		config.TypeKey:    s.Type,
+		config.GroupKey:   s.ResolvedType.Group,
 	}
 
 	for key, value := range metadata {
@@ -139,10 +140,10 @@ func (s *Service) buildStrategyContext(svcName string, metadata types.Metadata) 
 
 func (s *Service) BuildTemplateContext(serviceName string, metadata types.Metadata) error {
 	ctx := types.TemplateContext{
-		"service": serviceName,
-		"scope":   s.Scope,
-		"region":  s.Region,
-		"version": s.Version,
+		config.ServiceKey: serviceName,
+		config.ScopeKey:   s.Scope,
+		config.RegionKey:  s.Region,
+		config.VersionKey: s.Version,
 	}
 
 	data, err := utils.ToMap(s.ResolvedType)
@@ -154,30 +155,34 @@ func (s *Service) BuildTemplateContext(serviceName string, metadata types.Metada
 		ctx[strings.ToLower(k)] = v
 	}
 
-	for key, value := range s.Labels {
-		ctx[strings.ToLower(key)] = value
-	}
-
 	for key, value := range metadata {
 		ctx[strings.ToLower(key)] = value
 	}
 
-	ctx["inputs"] = s.Inputs
-	ctx["dependencies"] = s.Dependencies
+	for key, value := range s.Labels {
+		ctx[strings.ToLower(key)] = value
+	}
+
+	ctx[config.InputsKey] = s.Inputs
+	ctx[config.DependencyKey] = s.Dependencies
 	s.TemplateContext = ctx
 	return nil
 }
 
 func (s *Service) ResolveTargetPath(
-	svcName,
-	strategyTemplate string,
+	ctx context.Context,
+	svcName string,
 	metadata types.Metadata,
 ) error {
+	cfg, ok := ctx.Value(config.ContextKey).(*config.Config)
+	if !ok {
+		return fmt.Errorf("config not found")
+	}
 	strategyContext := s.buildStrategyContext(svcName, metadata)
 	tmpl, err := template.New("target_path").
 		Funcs(sprig.FuncMap()).
 		Funcs(template.FuncMap{"var": func() types.StrategyContext { return strategyContext }}).
-		Parse(strategyTemplate)
+		Parse(cfg.Strategy.Template)
 	if err != nil {
 		return err
 	}
@@ -199,16 +204,15 @@ func validatePath(buffer *bytes.Buffer) (string, error) {
 }
 
 func (s *Service) ResolveDependencies(
-	manifestName,
-	manifestPath string,
-	strategyTemplate string,
+	ctx context.Context,
+	manifestName string,
 	services map[string]Service,
 	metadata types.Metadata,
 ) {
 	resolvedDependencies := make([]Dependency, 0, len(s.Dependencies))
 
 	for _, dep := range s.Dependencies {
-		depName, ok := dep["service"].(string)
+		depName, ok := dep[config.ServiceKey].(string)
 		if !ok {
 			continue
 		}
@@ -219,8 +223,8 @@ func (s *Service) ResolveDependencies(
 		}
 
 		targetSvc.Reconcile(metadata)
-		targetSvc.ResolveType(manifestPath)
-		targetSvc.ResolveTargetPath(depName, strategyTemplate, metadata)
+		targetSvc.ResolveType(ctx)
+		targetSvc.ResolveTargetPath(ctx, depName, metadata)
 
 		relPath, err := filepath.Rel(s.ResolvedTargetPath, targetSvc.ResolvedTargetPath)
 		if err != nil {
@@ -228,8 +232,8 @@ func (s *Service) ResolveDependencies(
 		}
 
 		resolvedDep := map[string]any{
-			"service":     depName,
-			"config_path": fmt.Sprintf("${path_relative_from_include}/%s", relPath),
+			config.ServiceKey: depName,
+			"config_path":     fmt.Sprintf("${path_relative_from_include}/%s", relPath),
 		}
 
 		for k, v := range dep {
@@ -258,14 +262,14 @@ func ServiceFromYAML(data []byte) (*Service, error) {
 func DefaultService(name, serviceType string) *Service {
 	return &Service{
 		Type:    serviceType,
-		Scope:   ScopeRegional,
+		Scope:   config.ScopeRegional,
 		Version: "1.0",
 		Region:  "us-east-1",
 		Inputs:  map[string]any{},
 		Labels: map[string]any{
-			"type":  serviceType,
-			"scope": ScopeRegional,
-			"name":  name,
+			config.TypeKey:  serviceType,
+			config.ScopeKey: config.ScopeRegional,
+			config.NameKey:  name,
 		},
 		Dependencies: []Dependency{},
 	}

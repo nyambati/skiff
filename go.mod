@@ -1,6 +1,8 @@
 module github.com/nyambati/skiff
 
-go 1.22.4
+go 1.23.0
+
+toolchain go1.24.2
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
@@ -8,6 +10,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )

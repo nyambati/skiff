@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -117,7 +118,9 @@ types:
 			Type: "web",
 		}
 
-		resolvedService, err := service.ResolveType(tempDir)
+		ctx := context.WithValue(context.Background(), "config", skiffConfig)
+
+		resolvedService, err := service.ResolveType(ctx)
 		require.NoError(t, err)
 		assert.NotNil(t, resolvedService.ResolvedType)
 		assert.Equal(t, "web.tmpl", resolvedService.ResolvedType.Template)
@@ -136,17 +139,17 @@ types:
 		service := &Service{
 			Type: "database",
 		}
-
-		_, err := service.ResolveType(tempDir)
+		ctx := context.WithValue(context.Background(), "config", skiffConfig)
+		_, err := service.ResolveType(ctx)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "service type database does not exist")
 	})
 
 	t.Run("Resolve Service Type Without Type", func(t *testing.T) {
-		tempDir := setupTestConfig(t)
+		// tempDir := setupTestConfig(t)
 		service := &Service{}
-
-		_, err := service.ResolveType(tempDir)
+		ctx := context.WithValue(context.Background(), "config", skiffConfig)
+		_, err := service.ResolveType(ctx)
 		require.Error(t, err)
 		assert.Equal(t, "service type is required", err.Error())
 	})
@@ -299,7 +302,9 @@ func TestResolveTargetPath(t *testing.T) {
 			"environment": "production",
 		}
 
-		err := service.ResolveTargetPath("web-service", skiffConfig.Strategy.Template, metadata)
+		ctx := context.WithValue(context.Background(), "config", skiffConfig)
+
+		err := service.ResolveTargetPath(ctx, "web-service", metadata)
 		require.NoError(t, err)
 
 		assert.Equal(t, "123456/regions/us-west-2/web-service", service.ResolvedTargetPath)

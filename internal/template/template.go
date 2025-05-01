@@ -13,6 +13,7 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
+	skiff "github.com/nyambati/skiff/internal/errors"
 	"github.com/nyambati/skiff/internal/manifest"
 	"github.com/nyambati/skiff/internal/strategy"
 	"github.com/nyambati/skiff/internal/types"
@@ -27,16 +28,16 @@ import (
 
 func GetRenderConfig(ctx context.Context, manifestID, labels string) (*strategy.RenderConfig, error) {
 	var catalog catalog.Catalog
-	cfg, ok := ctx.Value("config").(*config.Config)
+	cfg, ok := ctx.Value(config.ContextKey).(*config.Config)
 	if !ok {
-		return nil, fmt.Errorf("config not found in context")
+		return nil, skiff.NewConfigurationNotFoundError()
 	}
 
 	serviceTypesPath := fmt.Sprintf("%s/%s", cfg.Manifests, config.CatalogFile)
 	if err := catalog.Read(serviceTypesPath); err != nil {
 		return nil, err
 	}
-	manifests, err := loadManifests(ctx, manifestID, cfg.Manifests)
+	manifests, err := loadManifests(ctx, manifestID)
 	if err != nil {
 		return nil, err
 	}
@@ -48,10 +49,15 @@ func GetRenderConfig(ctx context.Context, manifestID, labels string) (*strategy.
 // account ID or IDs. If an empty string is provided, it reads all account manifests in the
 // folder. It returns a slice of pointers to Manifest and an error if any issues occur during
 // processing.
-func loadManifests(ctx context.Context, manifestName, manifestPath string) ([]*manifest.Manifest, error) {
+func loadManifests(ctx context.Context, manifestName string) ([]*manifest.Manifest, error) {
 	var manifests []*manifest.Manifest
 
-	accounts, err := getManifestIdetifiers(manifestName, manifestPath)
+	cfg, ok := ctx.Value(config.ContextKey).(*config.Config)
+	if !ok {
+		return nil, skiff.NewConfigurationNotFoundError()
+	}
+
+	accounts, err := getManifestIdetifiers(manifestName, cfg.Manifests)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +127,7 @@ func Render(ctx context.Context, accountID, labels string, dryRun bool) error {
 
 	for _, cfg := range *configs {
 		funcMaps := sprig.TxtFuncMap()
-		funcMaps["inputs"] = toInputs
+		funcMaps[config.InputsKey] = toInputs
 		funcMaps["toObject"] = toObject
 		funcMaps["toProp"] = toProp
 		funcMaps["dependency"] = renderDependencies
@@ -286,7 +292,7 @@ func renderDependencies(deps []catalog.Dependency) string {
 	var out strings.Builder
 
 	for _, dep := range deps {
-		service, _ := dep["service"].(string)
+		service, _ := dep[config.ServiceKey].(string)
 		configPath, _ := dep["config_path"].(string)
 
 		out.WriteString(fmt.Sprintf("dependency \"%s\" {\n", service))

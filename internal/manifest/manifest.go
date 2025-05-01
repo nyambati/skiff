@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
@@ -16,7 +15,7 @@ import (
 )
 
 func Read(ctx context.Context, manifestName string) (*Manifest, error) {
-	config, ok := ctx.Value("config").(*config.Config)
+	cfg, ok := ctx.Value(config.ContextKey).(*config.Config)
 	if !ok {
 		return nil, fmt.Errorf("config not found")
 	}
@@ -24,8 +23,8 @@ func Read(ctx context.Context, manifestName string) (*Manifest, error) {
 	m := &Manifest{
 		APIVersion: "v1",
 		Name:       manifestName,
-		Metadata:   types.Metadata{"name": manifestName},
-		filepath:   filepath.Join(config.Manifests, fmt.Sprintf("%s.yaml", manifestName)),
+		Metadata:   types.Metadata{config.NameKey: manifestName},
+		filepath:   filepath.Join(cfg.Manifests, fmt.Sprintf("%s.yaml", manifestName)),
 	}
 
 	if err := m.read(); err != nil {
@@ -75,28 +74,22 @@ func (m *Manifest) read() error {
 }
 
 func (m *Manifest) Resolve(ctx context.Context) error {
-	config, ok := ctx.Value("config").(*config.Config)
-	if !ok {
-		return fmt.Errorf("config not found")
-	}
-
 	for svcName, svc := range m.Services {
-		rSvc, err := svc.ResolveType(strings.TrimSuffix(m.filepath, m.Name))
+		rSvc, err := svc.ResolveType(ctx)
 		if err != nil {
 			return err
 		}
 		// Reconcile service
 		rSvc.Reconcile(m.Metadata)
 
-		err = rSvc.ResolveTargetPath(svcName, config.Strategy.Template, m.Metadata)
+		err = rSvc.ResolveTargetPath(ctx, svcName, m.Metadata)
 		if err != nil {
 			return err
 		}
 
 		rSvc.ResolveDependencies(
+			ctx,
 			m.Name,
-			config.Manifests,
-			config.Strategy.Template,
 			m.Services,
 			m.Metadata,
 		)
@@ -117,9 +110,7 @@ func (m *Manifest) AddService(name string, svc *catalog.Service) error {
 		return nil
 	}
 
-	cleaned := CleanService(dest)
-
-	if err := utils.Merge(&cleaned, svc); err != nil {
+	if err := utils.Merge(dest, svc); err != nil {
 		return err
 	}
 	m.Services[name] = *dest
@@ -133,16 +124,4 @@ func (m *Manifest) GetService(name string) (*catalog.Service, bool) {
 	}
 	svc, exists := m.Services[name]
 	return &svc, exists
-}
-
-func CleanService(in *catalog.Service) catalog.Service {
-	return catalog.Service{
-		Type:         in.Type,
-		Region:       in.Region,
-		Scope:        in.Scope,
-		Version:      in.Version,
-		Inputs:       in.Inputs,
-		Labels:       in.Labels,
-		Dependencies: in.Dependencies,
-	}
 }
