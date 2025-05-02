@@ -10,7 +10,7 @@ type (
 		Name       string                     `yaml:"-"`
 		APIVersion string                     `yaml:"apiVersion,omitempty"`
 		Metadata   types.Metadata             `yaml:"metadata,omitempty"`
-		Services   map[string]catalog.Service `yaml:"services"`
+		Services   map[string]catalog.Service `yaml:"services,omitempty"`
 		filepath   string                     `yaml:"-"`
 	}
 )

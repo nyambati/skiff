@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/types"
 	"github.com/nyambati/skiff/internal/utils"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
 
@@ -37,13 +39,13 @@ func (c *Catalog) Read(path string) error {
 	return yaml.Unmarshal(buff, &c)
 }
 
-func (c *Catalog) Write(path string, verbose, force bool) error {
+func (c *Catalog) Write(path string, force bool) error {
 	buff, err := c.ToYAML()
 	if err != nil {
 		return err
 	}
 
-	return utils.WriteFile(path, buff)
+	return utils.WriteFile(path, utils.PrependWatermark(string(buff), config.ToolName))
 }
 
 func NewCatalog() *Catalog {
@@ -61,10 +63,11 @@ func (c *Catalog) AddServiceType(name string, svcType *ServiceType, append bool)
 		return nil
 	}
 
-	if err := utils.Merge(dest, svcType); err != nil {
+	if err := utils.Merge(dest, svcType, append); err != nil {
 		return err
 	}
 
+	// find better way to merge
 	c.Types[name] = *dest
 	return nil
 }
@@ -115,9 +118,7 @@ func (s *Service) Reconcile(metadata types.Metadata) *Service {
 		s.Labels = map[string]any{}
 	}
 
-	for key, value := range s.Labels {
-		metadata[key] = value
-	}
+	maps.Copy(metadata, s.Labels)
 
 	if len(s.Inputs) == 0 {
 		s.Inputs = map[string]any{}
@@ -137,13 +138,9 @@ func (s *Service) buildStrategyContext(svcName string, metadata types.Metadata) 
 		config.GroupKey:   s.ResolvedType.Group,
 	}
 
-	for key, value := range metadata {
-		context[key] = value
-	}
+	maps.Copy(context, metadata)
+	maps.Copy(context, s.Labels)
 
-	for key, value := range s.Labels {
-		context[key] = value
-	}
 	return context
 }
 
@@ -260,14 +257,6 @@ func (s *Service) ResolveDependencies(
 	s.Dependencies = resolvedDependencies
 }
 
-func FromYAML[T any](data []byte) (*T, error) {
-	var inter T
-	if err := yaml.Unmarshal(data, &inter); err != nil {
-		return nil, err
-	}
-	return &inter, nil
-}
-
 func DefaultService(name, serviceType string) *Service {
 	return &Service{
 		Type:    serviceType,
@@ -282,4 +271,103 @@ func DefaultService(name, serviceType string) *Service {
 		},
 		Dependencies: []Dependency{},
 	}
+}
+
+func buildCatalogFromValues(values string) (*ServiceType, error) {
+	var outputs []string
+
+	valuesMap := utils.ParseKeyValueFlag(values)
+
+	outputValues, ok := valuesMap["outputs"].(string)
+	if ok && outputValues != "" {
+		outputs = strings.Split(outputValues, ":")
+	}
+
+	valuesMap["outputs"] = outputs
+
+	service := &ServiceType{}
+
+	if err := utils.StructFromMap(valuesMap, service); err != nil {
+		return nil, err
+	}
+
+	if service.Template == "" {
+		service.Template = config.TerragruntTemplateFile
+	}
+
+	return service, nil
+}
+
+func AddServiceType(ctx context.Context, serviceTypeName string, values string) error {
+	var oldCatalog []byte
+	var newCatalog []byte
+
+	cfg, err := utils.GetConfigFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	svcCatalog := NewCatalog()
+
+	path := filepath.Join(cfg.Manifests, config.CatalogFile)
+
+	if err := svcCatalog.Read(path); err != nil {
+		return err
+	}
+
+	oldCatalog, err = utils.ToYAML(svcCatalog)
+	if err != nil {
+		return err
+	}
+
+	serviceType, exists := svcCatalog.GetServiceType(serviceTypeName)
+	if !exists {
+		serviceType = &ServiceType{
+			Template: config.TerragruntTemplateFile,
+		}
+	}
+
+	if values != "" {
+		serviceType, err := buildCatalogFromValues(values)
+		if err != nil {
+			return err
+		}
+
+		return svcCatalog.AddServiceType(serviceTypeName, serviceType, true)
+
+	}
+
+	existingContent, err := utils.ToYAML(serviceType)
+	if err != nil {
+		return err
+	}
+
+	editContent, err := utils.EditFile(path, existingContent)
+	if err != nil {
+		return err
+	}
+
+	svc, err := utils.FromYAML[ServiceType](editContent)
+	if err != nil {
+		return err
+	}
+
+	svcCatalog.AddServiceType(serviceTypeName, svc, false)
+
+	newCatalog, err = utils.ToYAML(svcCatalog)
+	if err != nil {
+		return err
+	}
+
+	if !utils.ShouldWrite(oldCatalog, newCatalog) {
+		return nil
+	}
+
+	if err := svcCatalog.Write(path, true); err != nil {
+		return err
+	}
+
+	logrus.Printf("✅ service type %s has been added successfuly\n", serviceTypeName)
+
+	return nil
 }

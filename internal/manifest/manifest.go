@@ -15,9 +15,9 @@ import (
 )
 
 func Read(ctx context.Context, manifestName string) (*Manifest, error) {
-	cfg, ok := ctx.Value(config.ContextKey).(*config.Config)
-	if !ok {
-		return nil, fmt.Errorf("config not found")
+	cfg, err := utils.GetConfigFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	m := &Manifest{
@@ -44,6 +44,8 @@ func (m *Manifest) Write(verbose, force bool) error {
 		log.Infof("skipping, manifest %s already exists, use --force to overwrite\n", m.Name)
 		return nil
 	}
+
+	data = utils.PrependWatermark(string(data), config.ToolName)
 
 	if err := utils.WriteFile(m.filepath, data); err != nil {
 		return err

@@ -23,3 +23,15 @@ func (e *ConfigNotFoundError) Error() string {
 func NewConfigNotFoundError() *ConfigNotFoundError {
 	return &ConfigNotFoundError{}
 }
+
+type ServiceTypeDoesNotExistError struct {
+	Type string
+}
+
+func (e *ServiceTypeDoesNotExistError) Error() string {
+	return fmt.Sprintf("service type %s does not exist in the catalog, please check your catalog configuration", e.Type)
+}
+
+func NewServiceTypeDoesNotExistError(serviceType string) *ServiceTypeDoesNotExistError {
+	return &ServiceTypeDoesNotExistError{Type: serviceType}
+}

@@ -8,7 +8,7 @@ type (
 		Group    string   `yaml:"group,omitempty"`
 		Version  string   `yaml:"version,omitempty"`
 		Template string   `yaml:"template,omitempty"`
-		Outputs  []string `yaml:"outputs"`
+		Outputs  []string `yaml:"outputs,omitempty"`
 	}
 
 	Dependency map[string]any
@@ -20,9 +20,9 @@ type (
 		Region               string                `yaml:"region,omitempty"`
 		Scope                string                `yaml:"scope,omitempty"`
 		Version              string                `yaml:"version,omitempty"`
-		Inputs               map[string]any        `yaml:"inputs"`
-		Labels               map[string]any        `yaml:"labels"`
-		Dependencies         []Dependency          `yaml:"dependencies"`
+		Inputs               map[string]any        `yaml:"inputs,omitempty"`
+		Labels               map[string]any        `yaml:"labels,omitempty"`
+		Dependencies         []Dependency          `yaml:"dependencies,omitempty"`
 		ResolvedDependencies []Dependency          `yaml:"-"`
 		ResolvedType         *ServiceType          `yaml:"-"`
 		TemplateContext      types.TemplateContext `yaml:"-"`

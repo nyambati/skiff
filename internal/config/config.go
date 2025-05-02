@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	ToolName               = "skiff"
 	CatalogFile            = "catalog.yaml"
 	TerragruntTemplateFile = "terragrunt.default.tmpl"
 	SkiffConfigFile        = ".skiff"

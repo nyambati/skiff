@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,9 +11,12 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/nyambati/skiff/internal/config"
 	skiff "github.com/nyambati/skiff/internal/errors"
+	"github.com/pmezard/go-difflib/difflib"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
 
@@ -296,4 +300,77 @@ func StructFromMap[T any](data map[string]any, target T) error {
 		return err
 	}
 	return nil
+}
+
+func FromYAML[T any](data []byte) (*T, error) {
+	var inter T
+	if err := yaml.Unmarshal(data, &inter); err != nil {
+		return nil, err
+	}
+	return &inter, nil
+}
+
+func PrependWatermark(content, toolName string) []byte {
+	watermark := fmt.Sprintf(`# This configuration generated and managed by %s. DO NOT EDIT.
+# Last updated at: %s
+
+`,
+		toolName, time.Now().UTC().Format(time.RFC3339),
+	)
+
+	return []byte(watermark + strings.TrimPrefix(string(content), watermark))
+}
+
+func ShouldWrite(oldContent, newContent []byte) bool {
+	// Check if there's any diff
+	if bytes.Equal(oldContent, newContent) {
+		fmt.Println("✅ No changes detected.")
+		return false
+	}
+
+	// Show diff
+	logrus.Println("changes detected, showing diff:")
+	printUnifiedYAMLDiff(string(oldContent), string(newContent))
+
+	// Prompt user
+	fmt.Print("Do you accept these changes? (y/N): ")
+	var answer string
+	fmt.Scan(&answer)
+
+	if strings.ToLower(strings.TrimSpace(answer)) != "y" {
+		logrus.Println("changes discarded.")
+		return false
+	}
+
+	return true
+}
+
+func printUnifiedYAMLDiff(oldContent, newContent string) {
+	diff := difflib.UnifiedDiff{
+		A:        difflib.SplitLines(oldContent),
+		B:        difflib.SplitLines(newContent),
+		FromFile: "original",
+		ToFile:   "updated",
+		Context:  1,
+	}
+
+	text, err := difflib.GetUnifiedDiffString(diff)
+	if err != nil {
+		fmt.Println("failed to compute diff:", err)
+		return
+	}
+
+	// Print with colors
+	for _, line := range strings.Split(text, "\n") {
+		switch {
+		case strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++"):
+			fmt.Printf("\033[32m%s\033[0m\n", line) // green
+		case strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---"):
+			fmt.Printf("\033[31m%s\033[0m\n", line) // red
+		case strings.HasPrefix(line, "@@"):
+			fmt.Printf("\033[36m%s\033[0m\n", line) // cyan
+		default:
+			fmt.Println(line)
+		}
+	}
 }

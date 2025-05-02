@@ -5,11 +5,11 @@ package cmd
 
 import (
 	_ "embed"
-	"fmt"
 	"path/filepath"
 
 	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/utils"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +26,14 @@ var skiffConfigTemplate []byte
 var initCmd = &cobra.Command{
 	Use:   "init [path] [flags]",
 	Short: "initializes a new skiff project",
-	Long:  "creates the required folder structure for a skiff project.",
+	Long: `
+Generates skiff folder structrue with default manifests.
+
+Creates:
+	manifest > stores manifest and catalog files
+	templates > stores default and self defined service templates
+	terragrunt > the output folder for generated hcl files
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return initProject(".", force)
 	},
@@ -67,7 +74,7 @@ func initProject(path string, force bool) error {
 
 		templatePath := filepath.Join(path, c.Folder, c.File)
 		if utils.FileExists(templatePath) && !force {
-			fmt.Printf("⚠️ Skipping, %s already exists, use --force to overwrite\n", templatePath)
+			logrus.Printf("skipping, %s already exists, use --force to overwrite\n", templatePath)
 			continue
 		}
 

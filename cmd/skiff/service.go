@@ -6,33 +6,30 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
+	skiff "github.com/nyambati/skiff/internal/errors"
 	"github.com/nyambati/skiff/internal/manifest"
 	"github.com/nyambati/skiff/internal/utils"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var serviceName string
-var serviceType string
 var manifestName string
 
 // serviceCmd represents the service command
 var addServiceCmd = &cobra.Command{
 	Use:   "service",
-	Short: "Adds service manifests",
+	Short: "edits specific service in manifest file",
+	Long: `The service command allows you to edit a specific service in the manifest file.
+
+Examples:
+  skiff edit service --manifest my-manifest --service my-service
+`,
 	Run: func(cmd *cobra.Command, args []string) {
-
-		cfg, ok := cmd.Context().Value("config").(*config.Config)
-		if !ok {
-			cmd.PrintErr("config not founc")
-			os.Exit(1)
-		}
-
-		if err := addService(cmd.Context(), manifestName, cfg.Manifests); err != nil {
+		if err := addService(cmd.Context(), manifestName); err != nil {
 			utils.PrintErrorAndExit(err)
 		}
 	},
@@ -40,44 +37,54 @@ var addServiceCmd = &cobra.Command{
 
 func init() {
 	editCmd.AddCommand(addServiceCmd)
-	addServiceCmd.Flags().StringVar(&manifestName, "manifest", "", "Account manifest name (required)")
-	addServiceCmd.Flags().StringVar(&serviceName, "name", "", "Service manifest name (required)")
-	addServiceCmd.Flags().StringVar(&serviceType, "type", "", "Service type (required)")
-	addServiceCmd.MarkFlagRequired("id")
-	addServiceCmd.MarkFlagRequired("name")
-	addServiceCmd.MarkFlagRequired("type")
+	addServiceCmd.Flags().StringVar(&manifestName, "manifest", "", "name of the manifest file")
+	addServiceCmd.Flags().StringVar(&serviceName, "service", "", "name of the service in the manifest file")
+	addServiceCmd.MarkFlagRequired("manifest")
+	addServiceCmd.MarkFlagRequired("service")
 }
 
-func addService(ctx context.Context, manifestName string, path string) error {
+func addService(ctx context.Context, manifestName string) error {
 	var svcCatalog catalog.Catalog
+
+	cfg, err := utils.GetConfigFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	catalogFilePath := fmt.Sprintf("%s/%s", cfg.Manifests, config.CatalogFile)
+	manifestFilePath := fmt.Sprintf("%s/%s.yaml", cfg.Manifests, manifestName)
 
 	manifest, err := manifest.Read(ctx, manifestName)
 	if err != nil {
 		return err
 	}
 
-	if err := svcCatalog.Read(fmt.Sprintf("%s/%s", path, config.CatalogFile)); err != nil {
+	if err := svcCatalog.Read(catalogFilePath); err != nil {
 		return err
 	}
 
-	if _, exists := svcCatalog.GetServiceType(serviceType); !exists {
-		err := fmt.Errorf("service type %s does not exist, run `skiff add service-type` to add a new service type", serviceType)
-		return err
+	svc, ok := manifest.GetService(serviceName)
+	if !ok {
+		svc = catalog.DefaultService(serviceName, "")
 	}
 
-	existingContent, err := utils.ToYAML(catalog.DefaultService(serviceName, serviceType))
+	content, err := utils.ToYAML(svc)
 	if err != nil {
 		return err
 	}
 
-	editContent, err := utils.EditFile(fmt.Sprintf("%s/%s.yaml", path, manifestName), existingContent)
+	content, err = utils.EditFile(manifestFilePath, content)
 	if err != nil {
 		return err
 	}
 
-	svc, err := catalog.FromYAML[catalog.Service](editContent)
+	svc, err = utils.FromYAML[catalog.Service](content)
 	if err != nil {
 		return err
+	}
+
+	if _, exists := svcCatalog.GetServiceType(svc.Type); !exists {
+		return skiff.NewServiceTypeDoesNotExistError(svc.Type)
 	}
 
 	manifest.AddService(serviceName, svc)
@@ -85,6 +92,6 @@ func addService(ctx context.Context, manifestName string, path string) error {
 	if err := manifest.Write(verbose, true); err != nil {
 		return err
 	}
-	fmt.Printf("✅ Service %s has been added to %s\n", serviceName, filepath.Join(path, manifestName))
+	logrus.Infof("✅ Service %s has been added to %s\n", serviceName, manifestFilePath)
 	return nil
 }

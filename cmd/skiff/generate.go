@@ -17,6 +17,11 @@ var dryRun bool
 var generateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "generates terragrunt configurations files from manifests",
+	Long: `
+Generates terragrunt configurations files from manifests.
+
+Example:
+  skiff generate --name my-manifest --labels env=prod,region=us-west-2`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := template.Render(cmd.Context(), name, labels, dryRun); err != nil {
 			cmd.PrintErr(err)
