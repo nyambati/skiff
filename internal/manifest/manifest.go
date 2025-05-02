@@ -138,6 +138,11 @@ func EditManifest(ctx context.Context, name, metadata string) error {
 		return err
 	}
 
+	oldManifest, err := utils.ToYAML(manifest)
+	if err != nil {
+		return err
+	}
+
 	cfg, err := config.FromContext(ctx)
 	if err != nil {
 		return err
@@ -165,6 +170,10 @@ func EditManifest(ctx context.Context, name, metadata string) error {
 	manifest, err = utils.FromYAML[Manifest](content)
 	if err != nil {
 		return err
+	}
+
+	if !utils.ShouldWrite(oldManifest, content) {
+		return nil
 	}
 
 	return manifest.Write(true)
@@ -195,23 +204,27 @@ func AddService(ctx context.Context, manifestName, serviceName string) error {
 		svc = catalog.DefaultService(serviceName, "")
 	}
 
-	content, err := utils.ToYAML(svc)
+	oldContent, err := utils.ToYAML(svc)
 	if err != nil {
 		return err
 	}
 
-	content, err = utils.EditFile(manifestFilePath, content)
+	newContent, err := utils.EditFile(manifestFilePath, oldContent)
 	if err != nil {
 		return err
 	}
 
-	svc, err = utils.FromYAML[catalog.Service](content)
+	svc, err = utils.FromYAML[catalog.Service](newContent)
 	if err != nil {
 		return err
 	}
 
 	if _, exists := svcCatalog.GetServiceType(svc.Type); !exists {
 		return skiff.NewServiceTypeDoesNotExistError(svc.Type)
+	}
+
+	if !utils.ShouldWrite(oldContent, newContent) {
+		return nil
 	}
 
 	manifest.AddService(serviceName, svc)

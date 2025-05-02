@@ -32,7 +32,11 @@ Example:
 
 func init() {
 	rootCmd.AddCommand(generateCmd)
-	generateCmd.Flags().StringVar(&name, "name", "", "name of the manifest used to generate terraform configurations")
-	generateCmd.Flags().StringVarP(&labels, "labels", "l", "", "labels to filter terraform configurations to apply to the list of accounts")
-	generateCmd.Flags().BoolVar(&dryRun, "dry-run", false, "dry run, generate")
+	generateCmd.Flags().StringVarP(
+		&manifestName, "manifest", "m", "", "name of the manifest used to generate terraform configurations",
+	)
+	generateCmd.Flags().StringVarP(
+		&labels, "labels", "l", "", "labels to filter terraform configurations to apply to the list of accounts",
+	)
+	generateCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "dry run, generate")
 }
