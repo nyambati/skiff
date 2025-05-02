@@ -110,7 +110,7 @@ func (m *Manifest) AddService(name string, svc *catalog.Service) error {
 		return nil
 	}
 
-	if err := utils.Merge(dest, svc); err != nil {
+	if err := utils.Merge(dest, svc, false); err != nil {
 		return err
 	}
 	m.Services[name] = *dest

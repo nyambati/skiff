@@ -97,7 +97,7 @@ func addServiceType(ctx context.Context, serviceTypeName string, values string, 
 			return err
 		}
 
-		return svcCatalog.AddServiceType(serviceTypeName, serviceType)
+		return svcCatalog.AddServiceType(serviceTypeName, serviceType, true)
 
 	}
 
@@ -116,6 +116,6 @@ func addServiceType(ctx context.Context, serviceTypeName string, values string, 
 		return err
 	}
 
-	svcCatalog.AddServiceType(serviceTypeName, svc)
+	svcCatalog.AddServiceType(serviceTypeName, svc, false)
 	return nil
 }

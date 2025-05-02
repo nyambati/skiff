@@ -53,7 +53,7 @@ func NewCatalog() *Catalog {
 	}
 }
 
-func (c *Catalog) AddServiceType(name string, svcType *ServiceType) error {
+func (c *Catalog) AddServiceType(name string, svcType *ServiceType, append bool) error {
 	dest, exists := c.GetServiceType(name)
 	if !exists {
 		c.APIVersion = "v1"

@@ -51,7 +51,7 @@ func TestManifestMethods(t *testing.T) {
 			Group:    "default",
 		}
 
-		err := catalog.AddServiceType("web", svcType)
+		err := catalog.AddServiceType("web", svcType, true)
 		require.NoError(t, err)
 
 		retrievedType, exists := catalog.GetServiceType("web")
@@ -74,10 +74,10 @@ func TestManifestMethods(t *testing.T) {
 			Version:  "1.1.0",
 		}
 
-		err := catalog.AddServiceType("web", svcType1)
+		err := catalog.AddServiceType("web", svcType1, true)
 		require.NoError(t, err)
 
-		err = catalog.AddServiceType("web", svcType2)
+		err = catalog.AddServiceType("web", svcType2, true)
 		require.NoError(t, err)
 
 		retrievedType, exists := catalog.GetServiceType("web")
@@ -91,7 +91,7 @@ func TestManifestMethods(t *testing.T) {
 		catalog := NewCatalog()
 		svcType := &ServiceType{}
 
-		err := catalog.AddServiceType("web", svcType)
+		err := catalog.AddServiceType("web", svcType, true)
 		assert.NoError(t, err, "Empty service type should be allowed")
 
 		retrievedType, exists := catalog.GetServiceType("web")

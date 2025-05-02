@@ -68,7 +68,7 @@ func ParseKeyValueFlag(input string) map[string]any {
 }
 
 // Merge takes two structs of the same type and merges the source into the destination, overwriting any non-zero fields in the destination with the value from the source.
-func Merge[T any](destination T, source T) error {
+func Merge[T any](destination T, source T, append bool) error {
 	srcRef, _ := getStructReference(source)
 	destRef, _ := getStructReference(destination)
 
@@ -83,7 +83,7 @@ func Merge[T any](destination T, source T) error {
 		}
 
 		// Handle slice type
-		if srcField.Kind() == reflect.Slice && destField.Kind() == reflect.Slice {
+		if srcField.Kind() == reflect.Slice && destField.Kind() == reflect.Slice && append {
 			merged := mergeUniqueSlices(destField, srcField)
 			destField.Set(merged)
 		} else {
