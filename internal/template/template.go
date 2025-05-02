@@ -16,7 +16,6 @@ import (
 	"github.com/nyambati/skiff/internal/manifest"
 	"github.com/nyambati/skiff/internal/strategy"
 	"github.com/nyambati/skiff/internal/types"
-	"github.com/nyambati/skiff/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,7 +27,7 @@ import (
 
 func GetRenderConfig(ctx context.Context, manifestID, labels string) (*strategy.RenderConfig, error) {
 	var catalog catalog.Catalog
-	cfg, err := utils.GetConfigFromContext(ctx)
+	cfg, err := config.FromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +51,7 @@ func GetRenderConfig(ctx context.Context, manifestID, labels string) (*strategy.
 func loadManifests(ctx context.Context, manifestName string) ([]*manifest.Manifest, error) {
 	var manifests []*manifest.Manifest
 
-	cfg, err := utils.GetConfigFromContext(ctx)
+	cfg, err := config.FromContext(ctx)
 	if err != nil {
 		return nil, err
 	}

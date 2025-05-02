@@ -5,17 +5,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
+	skiff "github.com/nyambati/skiff/internal/errors"
 	"github.com/nyambati/skiff/internal/types"
 	"github.com/nyambati/skiff/internal/utils"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
 func Read(ctx context.Context, manifestName string) (*Manifest, error) {
-	cfg, err := utils.GetConfigFromContext(ctx)
+	cfg, err := config.FromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +37,7 @@ func Read(ctx context.Context, manifestName string) (*Manifest, error) {
 	return m, nil
 }
 
-func (m *Manifest) Write(verbose, force bool) error {
+func (m *Manifest) Write(force bool) error {
 	data, err := m.ToYAML()
 	if err != nil {
 		return err
@@ -126,4 +129,96 @@ func (m *Manifest) GetService(name string) (*catalog.Service, bool) {
 	}
 	svc, exists := m.Services[name]
 	return &svc, exists
+}
+
+func EditManifest(ctx context.Context, name, metadata string) error {
+
+	manifest, err := Read(ctx, name)
+	if err != nil {
+		return err
+	}
+
+	cfg, err := config.FromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	if metadata != "" {
+		metadata := utils.ParseKeyValueFlag(metadata)
+
+		for k, v := range metadata {
+			manifest.Metadata[strings.ToLower(k)] = v
+		}
+
+	}
+
+	content, err := utils.ToYAML(manifest)
+	if err != nil {
+		return err
+	}
+
+	content, err = utils.EditFile(fmt.Sprintf("%s/%s.yaml", cfg.Manifests, manifest.Name), content)
+	if err != nil {
+		return err
+	}
+
+	manifest, err = utils.FromYAML[Manifest](content)
+	if err != nil {
+		return err
+	}
+
+	return manifest.Write(true)
+}
+
+func AddService(ctx context.Context, manifestName, serviceName string) error {
+	var svcCatalog catalog.Catalog
+
+	cfg, err := config.FromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	catalogFilePath := fmt.Sprintf("%s/%s", cfg.Manifests, config.CatalogFile)
+	manifestFilePath := fmt.Sprintf("%s/%s.yaml", cfg.Manifests, manifestName)
+
+	manifest, err := Read(ctx, manifestName)
+	if err != nil {
+		return err
+	}
+
+	if err := svcCatalog.Read(catalogFilePath); err != nil {
+		return err
+	}
+
+	svc, ok := manifest.GetService(serviceName)
+	if !ok {
+		svc = catalog.DefaultService(serviceName, "")
+	}
+
+	content, err := utils.ToYAML(svc)
+	if err != nil {
+		return err
+	}
+
+	content, err = utils.EditFile(manifestFilePath, content)
+	if err != nil {
+		return err
+	}
+
+	svc, err = utils.FromYAML[catalog.Service](content)
+	if err != nil {
+		return err
+	}
+
+	if _, exists := svcCatalog.GetServiceType(svc.Type); !exists {
+		return skiff.NewServiceTypeDoesNotExistError(svc.Type)
+	}
+
+	manifest.AddService(serviceName, svc)
+
+	if err := manifest.Write(true); err != nil {
+		return err
+	}
+	logrus.Infof("✅ Service %s has been added to %s\n", serviceName, manifestFilePath)
+	return nil
 }

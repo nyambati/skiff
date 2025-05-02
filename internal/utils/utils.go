@@ -2,7 +2,6 @@ package utils
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -13,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nyambati/skiff/internal/config"
-	skiff "github.com/nyambati/skiff/internal/errors"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -280,14 +277,6 @@ func ToYAML(i any) ([]byte, error) {
 		return nil, err
 	}
 	return data, nil
-}
-
-func GetConfigFromContext(ctx context.Context) (*config.Config, error) {
-	config, ok := ctx.Value(config.ContextKey).(*config.Config)
-	if !ok {
-		return nil, skiff.NewConfigNotFoundError()
-	}
-	return config, nil
 }
 
 func StructFromMap[T any](data map[string]any, target T) error {

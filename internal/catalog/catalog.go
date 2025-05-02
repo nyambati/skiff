@@ -302,7 +302,7 @@ func AddServiceType(ctx context.Context, serviceTypeName string, values string) 
 	var oldCatalog []byte
 	var newCatalog []byte
 
-	cfg, err := utils.GetConfigFromContext(ctx)
+	cfg, err := config.FromContext(ctx)
 	if err != nil {
 		return err
 	}
