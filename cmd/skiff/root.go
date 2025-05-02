@@ -21,6 +21,8 @@ var rootCmd = &cobra.Command{
 	Short: "A tool to generate and apply Terragrunt configurations from YAML manifests",
 	Long: `Skiff is a CLI tool that helps you define, generate,
 and apply infrastructure using a declarative YAML format and Terragrunt.`,
+	CompletionOptions: cobra.CompletionOptions{HiddenDefaultCmd: true},
+
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		cfg, err := config.New(cmd.Name())
 		if err != nil {
@@ -32,7 +34,7 @@ and apply infrastructure using a declarative YAML format and Terragrunt.`,
 			os.Exit(1)
 		}
 
-		ctx := context.WithValue(context.Background(), "config", cfg)
+		ctx := context.WithValue(context.Background(), config.ContextKey, cfg)
 		cmd.SetContext(ctx)
 	},
 }

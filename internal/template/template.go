@@ -13,10 +13,10 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/nyambati/skiff/internal/catalog"
 	"github.com/nyambati/skiff/internal/config"
-	skiff "github.com/nyambati/skiff/internal/errors"
 	"github.com/nyambati/skiff/internal/manifest"
 	"github.com/nyambati/skiff/internal/strategy"
 	"github.com/nyambati/skiff/internal/types"
+	"github.com/nyambati/skiff/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,9 +28,9 @@ import (
 
 func GetRenderConfig(ctx context.Context, manifestID, labels string) (*strategy.RenderConfig, error) {
 	var catalog catalog.Catalog
-	cfg, ok := ctx.Value(config.ContextKey).(*config.Config)
-	if !ok {
-		return nil, skiff.NewConfigurationNotFoundError()
+	cfg, err := utils.GetConfigFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	serviceTypesPath := fmt.Sprintf("%s/%s", cfg.Manifests, config.CatalogFile)
@@ -52,9 +52,9 @@ func GetRenderConfig(ctx context.Context, manifestID, labels string) (*strategy.
 func loadManifests(ctx context.Context, manifestName string) ([]*manifest.Manifest, error) {
 	var manifests []*manifest.Manifest
 
-	cfg, ok := ctx.Value(config.ContextKey).(*config.Config)
-	if !ok {
-		return nil, skiff.NewConfigurationNotFoundError()
+	cfg, err := utils.GetConfigFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	accounts, err := getManifestIdetifiers(manifestName, cfg.Manifests)

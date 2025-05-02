@@ -16,7 +16,7 @@ func terragruntCommands(commands []string) []*cobra.Command {
 	for _, command := range commands {
 		cobraCommands = append(cobraCommands, &cobra.Command{
 			Use:   command,
-			Short: "Runs terragrunt " + command + " command",
+			Short: "runs terragrunt " + command + " command for specified manifest or services",
 			Run: func(cmd *cobra.Command, args []string) {
 				if err := terragrunt.Run(cmd.Context(), command, name, labels, dryRun); err != nil {
 					cmd.PrintErr(err)

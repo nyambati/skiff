@@ -25,8 +25,8 @@ var skiffConfigTemplate []byte
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init [path] [flags]",
-	Short: "Initialize a new Skiff project",
-	Long:  "Creates the required folder structure for a Skiff project.",
+	Short: "initializes a new skiff project",
+	Long:  "creates the required folder structure for a skiff project.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return initProject(".", force)
 	},

@@ -16,7 +16,7 @@ var dryRun bool
 // generateCmd represents the generate command
 var generateCmd = &cobra.Command{
 	Use:   "generate",
-	Short: "Generates terragrunt configurations files from manifests",
+	Short: "generates terragrunt configurations files from manifests",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := template.Render(cmd.Context(), name, labels, dryRun); err != nil {
 			cmd.PrintErr(err)

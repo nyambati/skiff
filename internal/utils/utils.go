@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/nyambati/skiff/internal/config"
+	skiff "github.com/nyambati/skiff/internal/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -68,13 +71,47 @@ func ParseKeyValueFlag(input string) map[string]any {
 func Merge[T any](destination T, source T) error {
 	srcRef, _ := getStructReference(source)
 	destRef, _ := getStructReference(destination)
+
 	for i := range srcRef.NumField() {
 		field := srcRef.Type().Field(i).Name
-		if destRef.FieldByName(field).CanSet() && !srcRef.Field(i).IsZero() {
-			destRef.FieldByName(field).Set(srcRef.Field(i))
+
+		srcField := srcRef.Field(i)
+		destField := destRef.FieldByName(field)
+
+		if !destField.CanSet() || srcField.IsZero() {
+			continue
+		}
+
+		// Handle slice type
+		if srcField.Kind() == reflect.Slice && destField.Kind() == reflect.Slice {
+			merged := mergeUniqueSlices(destField, srcField)
+			destField.Set(merged)
+		} else {
+			destField.Set(srcField)
 		}
 	}
+
 	return nil
+}
+
+// Helper function to merge slices and append only unique elements
+func mergeUniqueSlices(dest, src reflect.Value) reflect.Value {
+	seen := make(map[any]bool)
+
+	// Add existing destination values
+	for i := range dest.Len() {
+		seen[dest.Index(i).Interface()] = true
+	}
+
+	// Append only new, unique values
+	for i := range src.Len() {
+		val := src.Index(i).Interface()
+		if !seen[val] {
+			dest = reflect.Append(dest, src.Index(i))
+			seen[val] = true
+		}
+	}
+	return dest
 }
 
 // getStructReference takes an arbitrary input and returns the underlying struct reference
@@ -239,4 +276,24 @@ func ToYAML(i any) ([]byte, error) {
 		return nil, err
 	}
 	return data, nil
+}
+
+func GetConfigFromContext(ctx context.Context) (*config.Config, error) {
+	config, ok := ctx.Value(config.ContextKey).(*config.Config)
+	if !ok {
+		return nil, skiff.NewConfigNotFoundError()
+	}
+	return config, nil
+}
+
+func StructFromMap[T any](data map[string]any, target T) error {
+	buff, err := yaml.Marshal(data)
+	if err != nil {
+		return err
+	}
+	err = yaml.Unmarshal(buff, target)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -13,11 +13,20 @@ import (
 	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/types"
 	"github.com/nyambati/skiff/internal/utils"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func (c *Catalog) ToYAML() ([]byte, error) {
-	return yaml.Marshal(c)
+	var buff bytes.Buffer
+	encoder := yaml.NewEncoder(&buff)
+	encoder.SetIndent(2)
+	defer encoder.Close()
+
+	if err := encoder.Encode(c); err != nil {
+		return nil, err
+	}
+
+	return buff.Bytes(), nil
 }
 
 func (c *Catalog) Read(path string) error {
@@ -251,12 +260,12 @@ func (s *Service) ResolveDependencies(
 	s.Dependencies = resolvedDependencies
 }
 
-func ServiceFromYAML(data []byte) (*Service, error) {
-	var svc Service
-	if err := yaml.Unmarshal(data, &svc); err != nil {
+func FromYAML[T any](data []byte) (*T, error) {
+	var inter T
+	if err := yaml.Unmarshal(data, &inter); err != nil {
 		return nil, err
 	}
-	return &svc, nil
+	return &inter, nil
 }
 
 func DefaultService(name, serviceType string) *Service {

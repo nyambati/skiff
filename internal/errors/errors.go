@@ -14,12 +14,12 @@ func NewConfigurationError(message string) *ConfigurationError {
 	return &ConfigurationError{Message: message}
 }
 
-type ConfigurationNotFoundError struct{}
+type ConfigNotFoundError struct{}
 
-func (e *ConfigurationNotFoundError) Error() string {
-	return fmt.Sprintf("Missing skiff configuration in the context")
+func (e *ConfigNotFoundError) Error() string {
+	return fmt.Sprintf("missing skiff config in context")
 }
 
-func NewConfigurationNotFoundError() *ConfigurationNotFoundError {
-	return &ConfigurationNotFoundError{}
+func NewConfigNotFoundError() *ConfigNotFoundError {
+	return &ConfigNotFoundError{}
 }

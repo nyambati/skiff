@@ -39,7 +39,7 @@ var addServiceCmd = &cobra.Command{
 }
 
 func init() {
-	addCmd.AddCommand(addServiceCmd)
+	editCmd.AddCommand(addServiceCmd)
 	addServiceCmd.Flags().StringVar(&manifestName, "manifest", "", "Account manifest name (required)")
 	addServiceCmd.Flags().StringVar(&serviceName, "name", "", "Service manifest name (required)")
 	addServiceCmd.Flags().StringVar(&serviceType, "type", "", "Service type (required)")
@@ -75,7 +75,7 @@ func addService(ctx context.Context, manifestName string, path string) error {
 		return err
 	}
 
-	svc, err := catalog.ServiceFromYAML(editContent)
+	svc, err := catalog.FromYAML[catalog.Service](editContent)
 	if err != nil {
 		return err
 	}
