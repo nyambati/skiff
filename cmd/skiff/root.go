@@ -19,11 +19,12 @@ var (
 	flagForce           bool
 	flagLabels          string
 	flagDryRun          bool
-	flagManifestName    string
+	flagManifestID      string
 	flagServiceTypeName string
 	flagValues          string
 	flagServiceName     string
 	flagMetadata        string
+	flagArgs            string
 )
 
 var rootCmd = &cobra.Command{

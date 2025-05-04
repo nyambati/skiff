@@ -48,7 +48,7 @@ func GetRenderConfig(ctx context.Context, manifestID, labels string) (*strategy.
 // account ID or IDs. If an empty string is provided, it reads all account manifests in the
 // folder. It returns a slice of pointers to Manifest and an error if any issues occur during
 // processing.
-func loadManifests(ctx context.Context, manifestName string) ([]*manifest.Manifest, error) {
+func loadManifests(ctx context.Context, manifestID string) ([]*manifest.Manifest, error) {
 	var manifests []*manifest.Manifest
 
 	cfg, err := config.FromContext(ctx)
@@ -56,7 +56,7 @@ func loadManifests(ctx context.Context, manifestName string) ([]*manifest.Manife
 		return nil, err
 	}
 
-	accounts, err := getManifestIdetifiers(manifestName, cfg.Manifests)
+	accounts, err := getManifestIdetifiers(manifestID, cfg.Manifests)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,6 @@ func getManifestIdetifiers(manifestName, manifestPath string) ([]string, error) 
 	var manifestIDs []string
 	for _, entry := range manifestDir {
 		if isValidIdentifier(entry) {
-			fmt.Println(entry.Name())
 			manifestIDs = append(manifestIDs, entry.Name())
 		}
 	}
@@ -118,8 +117,8 @@ func isValidIdentifier(entry os.DirEntry) bool {
 // rendered files to the specified target folders. Returns an error if any issues occur
 // during the rendering process.
 
-func Render(ctx context.Context, accountID, labels string, dryRun bool) error {
-	configs, err := GetRenderConfig(ctx, accountID, labels)
+func Render(ctx context.Context, manifestID, labels string, dryRun bool) error {
+	configs, err := GetRenderConfig(ctx, manifestID, labels)
 	if err != nil {
 		return err
 	}

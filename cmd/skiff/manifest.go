@@ -12,15 +12,15 @@ var addAccountCmd = &cobra.Command{
 	Long: `The manifest command allows you to edit the manifest file.
 
 Examples:
-  skiff edit manifest --name my-manifest --metadata env=production,account_id=12345
+  skiff edit manifest --manifest my-manifest --metadata env=production,account_id=12345
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return manifest.EditManifest(cmd.Context(), flagManifestName, flagMetadata)
+		return manifest.EditManifest(cmd.Context(), flagManifestID, flagMetadata)
 	},
 }
 
 func init() {
-	addAccountCmd.Flags().StringVar(&flagManifestName, "name", "", "manifest identifier ")
+	addAccountCmd.Flags().StringVarP(&flagManifestID, "manifest", "m", "", "manifest identifier ")
 	addAccountCmd.Flags().StringVar(&flagMetadata, "metadata", "", "manifestmetadata")
-	addAccountCmd.MarkFlagRequired("name")
+	addAccountCmd.MarkFlagRequired("manifest")
 }

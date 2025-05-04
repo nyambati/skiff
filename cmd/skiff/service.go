@@ -19,7 +19,7 @@ Examples:
   skiff edit service --manifest my-manifest --service my-service
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := manifest.AddService(cmd.Context(), flagManifestName, flagServiceName); err != nil {
+		if err := manifest.AddService(cmd.Context(), flagManifestID, flagServiceName); err != nil {
 			utils.PrintErrorAndExit(err)
 		}
 	},
@@ -27,8 +27,8 @@ Examples:
 
 func init() {
 	editCmd.AddCommand(addServiceCmd)
-	addServiceCmd.Flags().StringVar(&flagManifestName, "manifest", "m", "name of the manifest file")
-	addServiceCmd.Flags().StringVar(&flagServiceName, "service", "s", "name of the service in the manifest file")
+	addServiceCmd.Flags().StringVarP(&flagManifestID, "manifest", "m", "", "name of the manifest file")
+	addServiceCmd.Flags().StringVarP(&flagServiceName, "service", "s", "", "name of the service in the manifest file")
 	addServiceCmd.MarkFlagRequired("manifest")
 	addServiceCmd.MarkFlagRequired("service")
 }

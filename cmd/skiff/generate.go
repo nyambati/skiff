@@ -20,7 +20,7 @@ Generates terragrunt configurations files from manifests.
 Example:
   skiff generate --name my-manifest --labels env=prod,region=us-west-2`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := template.Render(cmd.Context(), flagManifestName, flagLabels, flagDryRun); err != nil {
+		if err := template.Render(cmd.Context(), flagManifestID, flagLabels, flagDryRun); err != nil {
 			cmd.PrintErr(err)
 			os.Exit(1)
 		}
@@ -30,7 +30,7 @@ Example:
 func init() {
 	rootCmd.AddCommand(generateCmd)
 	generateCmd.Flags().StringVarP(
-		&flagManifestName, "manifest", "m", "", "name of the manifest used to generate terraform configurations",
+		&flagManifestID, "manifest", "m", "", "name of the manifest used to generate terraform configurations",
 	)
 	generateCmd.Flags().StringVarP(
 		&flagLabels, "labels", "l", "", "labels to filter terraform configurations to apply to the list of accounts",
