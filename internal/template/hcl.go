@@ -3,6 +3,7 @@ package template
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2/hclwrite"
@@ -35,7 +36,7 @@ func RenderToHCL(data interface{}) string {
 
 	writeMapToBody(body, root)
 
-	return string(hclFile.Bytes())
+	return SanitizeExpressions(string(hclFile.Bytes()))
 }
 
 func render(data interface{}) interface{} {
@@ -220,4 +221,24 @@ func RenderTerraformAttrs(tf map[string]interface{}) string {
 	body := file.Body()
 	writeMapToBody(body, tf) // already exists
 	return strings.TrimSpace(string(file.Bytes()))
+}
+
+// SanitizeExpressions removes "__" prefix and unquotes dependency expressions
+// SanitizeExpressions handles expression unquoting and $$ escape fix
+func SanitizeExpressions(input string) string {
+	// Fix escaped dollar signs (e.g., $${foo} → ${foo})
+	input = strings.ReplaceAll(input, "$${", "${")
+
+	// Unquote __expression markers: "__dependency.foo.bar" → dependency.foo.bar
+	re := regexp.MustCompile(`= *"__([^"]+)"`)
+	input = re.ReplaceAllStringFunc(input, func(match string) string {
+		matches := re.FindStringSubmatch(match)
+		if len(matches) < 2 {
+			return match
+		}
+		expr := matches[1]
+		return "= " + expr
+	})
+
+	return input
 }

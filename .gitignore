@@ -30,3 +30,4 @@ manifests
 templates
 .skiff
 terragrunt
+skiff

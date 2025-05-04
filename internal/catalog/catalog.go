@@ -146,31 +146,34 @@ func (s *Service) buildStrategyContext(svcName string, metadata types.Metadata) 
 
 func (s *Service) BuildTemplateContext(serviceName string, metadata types.Metadata) error {
 	ctx := types.TemplateContext{
-		config.ServiceKey: serviceName,
-		config.ScopeKey:   s.Scope,
-		config.RegionKey:  s.Region,
-		config.VersionKey: s.Version,
+		"terraform": map[string]interface{}{
+			"source": fmt.Sprintf("%s?ref=%s", s.ResolvedType.Source, s.ResolvedType.Version),
+		},
+		"body": map[string]interface{}{
+			"dependencies": s.Dependencies,
+			"inputs":       s.Inputs,
+		},
 	}
 
-	data, err := utils.ToMap(s.ResolvedType)
-	if err != nil {
-		return err
-	}
+	// data, err := utils.ToMap(s.ResolvedType)
+	// if err != nil {
+	// 	return err
+	// }
 
-	for k, v := range data {
-		ctx[strings.ToLower(k)] = v
-	}
+	// for k, v := range data {
+	// 	ctx[strings.ToLower(k)] = v
+	// }
 
-	for key, value := range metadata {
-		ctx[strings.ToLower(key)] = value
-	}
+	// for key, value := range metadata {
+	// 	ctx[strings.ToLower(key)] = value
+	// }
 
-	for key, value := range s.Labels {
-		ctx[strings.ToLower(key)] = value
-	}
+	// for key, value := range s.Labels {
+	// 	ctx[strings.ToLower(key)] = value
+	// }
 
-	ctx[config.InputsKey] = s.Inputs
-	ctx[config.DependencyKey] = s.Dependencies
+	// ctx[config.InputsKey] = s.Inputs
+	// ctx[config.DependencyKey] = s.Dependencies
 	s.TemplateContext = ctx
 	return nil
 }
@@ -239,7 +242,7 @@ func (s *Service) ResolveDependencies(
 
 		resolvedDep := map[string]any{
 			config.ServiceKey: depName,
-			"config_path":     fmt.Sprintf("${path_relative_from_include}/%s", relPath),
+			"config_path":     fmt.Sprintf("${path_from_relative_include()}/%s", relPath),
 		}
 
 		for k, v := range dep {
@@ -249,7 +252,7 @@ func (s *Service) ResolveDependencies(
 		fmt.Println(targetSvc.ResolvedType)
 
 		for _, output := range targetSvc.ResolvedType.Outputs {
-			s.Inputs[output] = fmt.Sprintf("dependency.%s.%s", depName, output)
+			s.Inputs[output] = fmt.Sprintf("__dependency.%s.%s", depName, output)
 		}
 
 		resolvedDependencies = append(resolvedDependencies, resolvedDep)

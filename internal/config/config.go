@@ -91,8 +91,11 @@ func InitProject(path string, force bool) error {
 		if err := utils.CreateDirectory(filepath.Join(path, c.Folder)); err != nil {
 			return err
 		}
-
 		templatePath := filepath.Join(path, c.Folder, c.File)
+		if c.Folder == "." {
+			templatePath = filepath.Join(c.Folder, c.File)
+		}
+
 		if utils.FileExists(templatePath) && !force {
 			logrus.Printf("skipping, %s already exists, use --force to overwrite\n", templatePath)
 			continue

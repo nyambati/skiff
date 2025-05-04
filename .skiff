@@ -1,9 +1,9 @@
 force: false
 verbose: false
 path:
-  manifests: ./testdata/manifests
-  templates: ./testdata/templates
-  terragrunt: ./testdata/terragrunt
+  manifests: skiff/manifests
+  templates: skiff/templates
+  terragrunt: skiff/terragrunt
 strategy:
   description: Account-based layout with global and regional separation
   template: |

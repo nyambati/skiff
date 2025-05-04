@@ -25,6 +25,7 @@ var (
 	flagServiceName     string
 	flagMetadata        string
 	flagArgs            string
+	flagPath            string = "skiff"
 )
 
 var rootCmd = &cobra.Command{

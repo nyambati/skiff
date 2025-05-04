@@ -20,7 +20,7 @@ Examples:
 }
 
 func init() {
-	addCatalogCmd.Flags().StringVar(&flagServiceTypeName, "type", "t", "service type name (required)")
-	addCatalogCmd.Flags().StringVar(&flagValues, "values", "v", "service type values in key=value pairs (optional)")
+	addCatalogCmd.Flags().StringVar(&flagServiceTypeName, "type", "", "service type name (required)")
+	addCatalogCmd.Flags().StringVar(&flagValues, "values", "", "service type values in key=value pairs (optional)")
 	addCatalogCmd.MarkFlagRequired("type")
 }

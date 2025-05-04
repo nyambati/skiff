@@ -154,7 +154,6 @@ func Render(ctx context.Context, manifestID, labels string, dryRun bool) error {
 				return fmt.Errorf("failed to render template to %s: %w", outputPath, err)
 			}
 			logrus.
-				WithField("template", filepath.Base(cfg.Template)).
 				Infof("🧪 [Dry Run] Would render: %s\n", outputPath)
 			fmt.Println(buff.String())
 			continue
