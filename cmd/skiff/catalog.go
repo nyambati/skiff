@@ -5,9 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var serviceTypeName string
-var values string
-
 var addCatalogCmd = &cobra.Command{
 	Use:   "catalog [flags]",
 	Short: "edits the catalog file",
@@ -18,12 +15,12 @@ Examples:
 `,
 	Args: cobra.MinimumNArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return catalog.AddServiceType(cmd.Context(), serviceTypeName, values)
+		return catalog.AddServiceType(cmd.Context(), flagServiceTypeName, flagValues)
 	},
 }
 
 func init() {
-	addCatalogCmd.Flags().StringVar(&serviceTypeName, "type", "", "service type name (required)")
-	addCatalogCmd.Flags().StringVar(&values, "values", "", "service type values in key=value pairs (optional)")
-	addCatalogCmd.MarkFlagRequired("name")
+	addCatalogCmd.Flags().StringVar(&flagServiceTypeName, "type", "t", "service type name (required)")
+	addCatalogCmd.Flags().StringVar(&flagValues, "values", "v", "service type values in key=value pairs (optional)")
+	addCatalogCmd.MarkFlagRequired("type")
 }

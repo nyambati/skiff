@@ -5,9 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var name string
-var metadata string
-
 var addAccountCmd = &cobra.Command{
 	Use:   "manifest [flags]",
 	Short: "edits manifest files",
@@ -18,12 +15,12 @@ Examples:
   skiff edit manifest --name my-manifest --metadata env=production,account_id=12345
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return manifest.EditManifest(cmd.Context(), name, metadata)
+		return manifest.EditManifest(cmd.Context(), flagManifestName, flagMetadata)
 	},
 }
 
 func init() {
-	addAccountCmd.Flags().StringVar(&name, "name", "", "manifest identifier ")
-	addAccountCmd.Flags().StringVar(&metadata, "metadata", "", "manifestmetadata")
+	addAccountCmd.Flags().StringVar(&flagManifestName, "name", "", "manifest identifier ")
+	addAccountCmd.Flags().StringVar(&flagMetadata, "metadata", "", "manifestmetadata")
 	addAccountCmd.MarkFlagRequired("name")
 }

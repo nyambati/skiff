@@ -10,9 +10,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var labels string
-var dryRun bool
-
 // generateCmd represents the generate command
 var generateCmd = &cobra.Command{
 	Use:   "generate",
@@ -23,7 +20,7 @@ Generates terragrunt configurations files from manifests.
 Example:
   skiff generate --name my-manifest --labels env=prod,region=us-west-2`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := template.Render(cmd.Context(), name, labels, dryRun); err != nil {
+		if err := template.Render(cmd.Context(), flagManifestName, flagLabels, flagDryRun); err != nil {
 			cmd.PrintErr(err)
 			os.Exit(1)
 		}
@@ -33,10 +30,10 @@ Example:
 func init() {
 	rootCmd.AddCommand(generateCmd)
 	generateCmd.Flags().StringVarP(
-		&manifestName, "manifest", "m", "", "name of the manifest used to generate terraform configurations",
+		&flagManifestName, "manifest", "m", "", "name of the manifest used to generate terraform configurations",
 	)
 	generateCmd.Flags().StringVarP(
-		&labels, "labels", "l", "", "labels to filter terraform configurations to apply to the list of accounts",
+		&flagLabels, "labels", "l", "", "labels to filter terraform configurations to apply to the list of accounts",
 	)
-	generateCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "dry run, generate")
+	generateCmd.Flags().BoolVarP(&flagDryRun, "dry-run", "d", false, "dry run, generate")
 }

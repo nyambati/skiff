@@ -23,7 +23,7 @@ Creates:
 	terragrunt > the output folder for generated hcl files
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return config.InitProject(".", force)
+		return config.InitProject(".", flagForce)
 	},
 }
 

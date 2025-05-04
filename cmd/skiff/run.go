@@ -11,28 +11,20 @@ import (
 )
 
 // runCmd represents the run command
-func terragruntCommands(commands []string) []*cobra.Command {
-	cobraCommands := make([]*cobra.Command, 0, len(commands))
-	for _, command := range commands {
-		cobraCommands = append(cobraCommands, &cobra.Command{
-			Use:   command,
-			Short: "runs terragrunt " + command + " command for specified manifest or services",
-			Run: func(cmd *cobra.Command, args []string) {
-				if err := terragrunt.Run(cmd.Context(), command, name, labels, dryRun); err != nil {
-					cmd.PrintErr(err)
-					os.Exit(1)
-				}
-			},
-		})
-	}
-	return cobraCommands
+var runCmd = &cobra.Command{
+	Use:   "run [plan,apply,destroy]",
+	Short: "runs terragrunt command for specified manifest or services",
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := terragrunt.Run(cmd.Context(), args[0], flagManifestName, flagLabels, flagDryRun); err != nil {
+			cmd.PrintErr(err)
+			os.Exit(1)
+		}
+	},
 }
 
 func init() {
-	commands := terragruntCommands([]string{"plan", "apply", "destroy"})
-	for _, cmd := range commands {
-		rootCmd.AddCommand(cmd)
-		cmd.Flags().StringVarP(&labels, "labels", "l", "", "labels to filter terraform configurations to apply to the list of accounts")
-		cmd.Flags().BoolVar(&dryRun, "dry-run", false, "dry run mode")
-	}
+	rootCmd.AddCommand(runCmd)
+	runCmd.Flags().StringVarP(&flagLabels, "labels", "l", "", "labels to filter terraform configurations to apply to the list of accounts")
+	runCmd.Flags().BoolVarP(&flagDryRun, "dry-run", "d", false, "dry run mode")
 }

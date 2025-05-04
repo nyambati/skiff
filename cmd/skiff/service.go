@@ -9,9 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var serviceName string
-var manifestName string
-
 // serviceCmd represents the service command
 var addServiceCmd = &cobra.Command{
 	Use:   "service",
@@ -22,7 +19,7 @@ Examples:
   skiff edit service --manifest my-manifest --service my-service
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := manifest.AddService(cmd.Context(), manifestName, serviceName); err != nil {
+		if err := manifest.AddService(cmd.Context(), flagManifestName, flagServiceName); err != nil {
 			utils.PrintErrorAndExit(err)
 		}
 	},
@@ -30,8 +27,8 @@ Examples:
 
 func init() {
 	editCmd.AddCommand(addServiceCmd)
-	addServiceCmd.Flags().StringVar(&manifestName, "manifest", "", "name of the manifest file")
-	addServiceCmd.Flags().StringVar(&serviceName, "service", "", "name of the service in the manifest file")
+	addServiceCmd.Flags().StringVar(&flagManifestName, "manifest", "m", "name of the manifest file")
+	addServiceCmd.Flags().StringVar(&flagServiceName, "service", "s", "name of the service in the manifest file")
 	addServiceCmd.MarkFlagRequired("manifest")
 	addServiceCmd.MarkFlagRequired("service")
 }

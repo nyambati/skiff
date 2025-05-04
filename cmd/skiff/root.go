@@ -13,9 +13,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var verbose bool
-var force bool
-var logger *logrus.Logger
+// define flags
+var (
+	flagVerbose         bool
+	flagForce           bool
+	flagLabels          string
+	flagDryRun          bool
+	flagManifestName    string
+	flagServiceTypeName string
+	flagValues          string
+	flagServiceName     string
+	flagMetadata        string
+)
+
 var rootCmd = &cobra.Command{
 	Use:   "skiff",
 	Short: "A tool to generate and apply Terragrunt configurations from YAML manifests",
@@ -47,8 +57,8 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose mode")
-	rootCmd.PersistentFlags().BoolVarP(&force, "force", "f", false, "force overwrite")
+	rootCmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "verbose mode")
+	rootCmd.PersistentFlags().BoolVarP(&flagForce, "force", "f", false, "force overwrite")
 
 	logrus.SetFormatter(&logrus.TextFormatter{
 		DisableTimestamp: true,
@@ -57,7 +67,7 @@ func init() {
 
 	logrus.SetLevel(logrus.InfoLevel)
 
-	if verbose {
+	if flagVerbose {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 }
