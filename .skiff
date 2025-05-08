@@ -1,5 +1,3 @@
-force: false
-verbose: false
 path:
   manifests: skiff/manifests
   templates: skiff/templates

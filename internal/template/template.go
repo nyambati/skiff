@@ -14,6 +14,7 @@ import (
 	"github.com/nyambati/skiff/internal/config"
 	"github.com/nyambati/skiff/internal/manifest"
 	"github.com/nyambati/skiff/internal/strategy"
+	"github.com/nyambati/skiff/internal/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -123,25 +124,30 @@ func Render(ctx context.Context, manifestID, labels string, dryRun bool) error {
 
 	for _, cfg := range *configs {
 		funcMaps := sprig.TxtFuncMap()
-		funcMaps["terraform_atrributes"] = func() string {
-			terraform, ok := (*cfg.Context)["terraform"].(map[string]interface{})
+		funcMaps[config.TerraformAttributesKey] = func() string {
+			terraform, ok := (*cfg.Context)[config.TerraformKey].(map[string]interface{})
 			if !ok {
-				panic("terraform is not a map[string]interface{}")
+				logrus.Fatal(fmt.Errorf("terraform is not a map[string]interface{}"))
 			}
 			return RenderTerraformAttrs(terraform)
-
 		}
 
-		funcMaps["service_config"] = func() string {
-			body, ok := (*cfg.Context)["body"].(map[string]interface{})
+		funcMaps[config.ServiceConfigKey] = func() string {
+			body, ok := (*cfg.Context)[config.BodyKey].(map[string]interface{})
 			if !ok {
-				panic("terraform is not a map[string]interface{}")
+				logrus.Fatal(fmt.Errorf("terraform is not a map[string]interface{}"))
 			}
 			return RenderToHCL(body)
 
 		}
-		// funcMaps["var"] = func() types.TemplateContext { return *cfg.Context }
-		tmpl, err := template.New("").Funcs(funcMaps).ParseFiles(cfg.Template)
+
+		funcMaps[config.VarKey] = func() types.TemplateContext {
+			delete(*cfg.Context, config.TerraformKey)
+			delete(*cfg.Context, config.BodyKey)
+			return *cfg.Context
+		}
+
+		tmpl, err := template.New("").Option("missingkey=error").Funcs(funcMaps).ParseFiles(cfg.Template)
 		if err != nil {
 			return fmt.Errorf("failed to parse template: %w", err)
 		}

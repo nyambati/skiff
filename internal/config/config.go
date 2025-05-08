@@ -12,26 +12,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	ToolName               = "skiff"
-	CatalogFile            = "catalog.yaml"
-	TerragruntTemplateFile = "terragrunt.default.tmpl"
-	SkiffConfigFile        = ".skiff"
-	ScopeRegional          = "regional"
-	ScopeGlobal            = "global"
-	ServiceKey             = "service"
-	GroupKey               = "group"
-	ContextKey             = "config"
-	RegionKey              = "region"
-	TypeKey                = "type"
-	TagsKey                = "tags"
-	ScopeKey               = "scope"
-	VersionKey             = "version"
-	InputsKey              = "inputs"
-	DependencyKey          = "dependencies"
-	NameKey                = "name"
-)
-
 func New(command string) (*Config, error) {
 	config := new(Config)
 

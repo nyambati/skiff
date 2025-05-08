@@ -209,9 +209,8 @@ func TestBuildTemplateContext(t *testing.T) {
 			Region: "us-west-2",
 			Scope:  "global",
 			ResolvedType: &ServiceType{
-				Template: "web.tmpl",
-				Group:    "default",
-				Version:  "1.0.0",
+				Group:   "default",
+				Version: "1.0.0",
 			},
 			Inputs: map[string]any{
 				"key1": "value1",
@@ -229,16 +228,18 @@ func TestBuildTemplateContext(t *testing.T) {
 		assert.Equal(t, "123456", service.TemplateContext["id"])
 		assert.Equal(t, "TestAccount", service.TemplateContext["name"])
 		assert.Equal(t, "web-service", service.TemplateContext["service"])
+		assert.Equal(t, "web", service.TemplateContext["type"])
 		assert.Equal(t, "global", service.TemplateContext["scope"])
 		assert.Equal(t, "us-west-2", service.TemplateContext["region"])
 		assert.Equal(t, "1.0.0", service.TemplateContext["version"])
-		assert.Equal(t, "web.tmpl", service.TemplateContext["template"])
 		assert.Equal(t, "default", service.TemplateContext["group"])
 		assert.Equal(t, map[string]any{"key1": "value1"}, service.TemplateContext["inputs"])
 		assert.Equal(t, []Dependency{
 			{"service": "dep1"},
 			{"service": "dep2"},
 		}, service.TemplateContext["dependencies"])
+		assert.NotNil(t, service.TemplateContext["terraform"])
+		assert.NotNil(t, service.TemplateContext["body"])
 	})
 
 	t.Run("Build Template Context with Incomplete Resolved Type", func(t *testing.T) {
@@ -253,9 +254,12 @@ func TestBuildTemplateContext(t *testing.T) {
 
 		assert.NotNil(t, service.TemplateContext)
 		assert.Equal(t, "web-service", service.TemplateContext["service"])
+		assert.Equal(t, "web", service.TemplateContext["type"])
 		assert.Equal(t, "us-west-2", service.TemplateContext["region"])
-		assert.Equal(t, "", service.TemplateContext["template"])
 		assert.Equal(t, "", service.TemplateContext["group"])
+		assert.Equal(t, "", service.TemplateContext["version"])
+		assert.Nil(t, service.TemplateContext["inputs"])
+		assert.Nil(t, service.TemplateContext["dependencies"])
 	})
 
 	t.Run("Build Template Context with Complex Inputs", func(t *testing.T) {
@@ -263,8 +267,7 @@ func TestBuildTemplateContext(t *testing.T) {
 			Type:   "web",
 			Region: "us-west-2",
 			ResolvedType: &ServiceType{
-				Template: "web.tmpl",
-				Group:    "default",
+				Group: "default",
 			},
 			Inputs: map[string]any{
 				"nested": map[string]any{

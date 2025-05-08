@@ -144,36 +144,49 @@ func (s *Service) buildStrategyContext(svcName string, metadata types.Metadata) 
 	return context
 }
 
+// BuildTemplateContext creates a TemplateContext for the service based on the provided
+// service name, metadata, and resolved service type. The TemplateContext is used to
+// render the service's Terragrunt configuration file.
+//
+// The generated TemplateContext will contain the following keys:
+//
+//   - config.ServiceKey: the name of the service
+//   - config.RegionKey: the region of the service
+//   - config.TypeKey: the type of the service
+//   - config.GroupKey: the group of the service
+//   - config.InputsKey: the inputs of the service
+//   - config.DependencyKey: the dependencies of the service
+//   - config.VersionKey: the version of the service
+//   - config.ScopeKey: the scope of the service (regional or global)
+//   - config.TerraformKey: a map containing the source of the Terraform module
+//     as a key-value pair (config.SourceKey)
+//   - config.BodyKey: a map containing the dependencies and inputs of the service
+//     as key-value pairs (config.DependencyKey and config.InputsKey)
+//
+// The generated TemplateContext will also contain any additional metadata and
+// labels that are provided.
 func (s *Service) BuildTemplateContext(serviceName string, metadata types.Metadata) error {
 	ctx := types.TemplateContext{
-		"terraform": map[string]interface{}{
-			"source": fmt.Sprintf("%s?ref=%s", s.ResolvedType.Source, s.ResolvedType.Version),
+		config.ServiceKey:    serviceName,
+		config.RegionKey:     s.Region,
+		config.TypeKey:       s.Type,
+		config.GroupKey:      s.ResolvedType.Group,
+		config.InputsKey:     s.Inputs,
+		config.DependencyKey: s.Dependencies,
+		config.VersionKey:    s.ResolvedType.Version,
+		config.ScopeKey:      s.Scope,
+		config.TerraformKey: map[string]interface{}{
+			config.SourceKey: fmt.Sprintf("%s?ref=%s", s.ResolvedType.Source, s.ResolvedType.Version),
 		},
-		"body": map[string]interface{}{
-			"dependencies": s.Dependencies,
-			"inputs":       s.Inputs,
+		config.BodyKey: map[string]interface{}{
+			config.DependencyKey: s.Dependencies,
+			config.InputsKey:     s.Inputs,
 		},
 	}
 
-	// data, err := utils.ToMap(s.ResolvedType)
-	// if err != nil {
-	// 	return err
-	// }
+	maps.Copy(ctx, metadata)
+	maps.Copy(ctx, s.Labels)
 
-	// for k, v := range data {
-	// 	ctx[strings.ToLower(k)] = v
-	// }
-
-	// for key, value := range metadata {
-	// 	ctx[strings.ToLower(key)] = value
-	// }
-
-	// for key, value := range s.Labels {
-	// 	ctx[strings.ToLower(key)] = value
-	// }
-
-	// ctx[config.InputsKey] = s.Inputs
-	// ctx[config.DependencyKey] = s.Dependencies
 	s.TemplateContext = ctx
 	return nil
 }
@@ -183,14 +196,17 @@ func (s *Service) ResolveTargetPath(
 	svcName string,
 	metadata types.Metadata,
 ) error {
-	cfg, ok := ctx.Value(config.ContextKey).(*config.Config)
-	if !ok {
-		return fmt.Errorf("config not found")
+	cfg, err := config.FromContext(ctx)
+	if err != nil {
+		return err
 	}
+
 	strategyContext := s.buildStrategyContext(svcName, metadata)
-	tmpl, err := template.New("target_path").
+
+	tmpl, err := template.New("").
+		Option("missingkey=error").
 		Funcs(sprig.FuncMap()).
-		Funcs(template.FuncMap{"var": func() types.StrategyContext { return strategyContext }}).
+		Funcs(template.FuncMap{config.VarKey: func() types.StrategyContext { return strategyContext }}).
 		Parse(cfg.Strategy.Template)
 	if err != nil {
 		return err
@@ -241,8 +257,8 @@ func (s *Service) ResolveDependencies(
 		}
 
 		resolvedDep := map[string]any{
-			config.ServiceKey: depName,
-			"config_path":     fmt.Sprintf("${path_from_relative_include()}/%s", relPath),
+			config.ServiceKey:    depName,
+			config.ConfigPathKey: relPath,
 		}
 
 		for k, v := range dep {
@@ -281,12 +297,12 @@ func buildCatalogFromValues(values string) (*ServiceType, error) {
 
 	valuesMap := utils.ParseKeyValueFlag(values)
 
-	outputValues, ok := valuesMap["outputs"].(string)
+	outputValues, ok := valuesMap[config.OutputsKey].(string)
 	if ok && outputValues != "" {
 		outputs = strings.Split(outputValues, ":")
 	}
 
-	valuesMap["outputs"] = outputs
+	valuesMap[config.OutputsKey] = outputs
 
 	service := &ServiceType{}
 

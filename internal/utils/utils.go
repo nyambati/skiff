@@ -314,7 +314,7 @@ func ShouldWrite(oldContent, newContent []byte) bool {
 	// Check if there's any diff
 	if bytes.Equal(oldContent, newContent) {
 		fmt.Println("✅ No changes detected.")
-		return false
+		return true
 	}
 
 	// Show diff

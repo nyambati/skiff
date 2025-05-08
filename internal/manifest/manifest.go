@@ -49,7 +49,7 @@ func (m *Manifest) Write(force bool) error {
 	}
 
 	data = utils.PrependWatermark(string(data), config.ToolName)
-
+	fmt.Println("writing to ", m.filepath)
 	if err := utils.WriteFile(m.filepath, data); err != nil {
 		return err
 	}
@@ -138,12 +138,9 @@ func EditManifest(ctx context.Context, name, metadata string) error {
 		return err
 	}
 
-	oldManifest, err := utils.ToYAML(manifest)
-	if err != nil {
-		return err
-	}
+	manifestPath := manifest.filepath
 
-	cfg, err := config.FromContext(ctx)
+	oldManifest, err := utils.ToYAML(manifest)
 	if err != nil {
 		return err
 	}
@@ -162,7 +159,7 @@ func EditManifest(ctx context.Context, name, metadata string) error {
 		return err
 	}
 
-	content, err = utils.EditFile(fmt.Sprintf("%s/%s.yaml", cfg.Manifests, manifest.Name), content)
+	content, err = utils.EditFile(manifestPath, content)
 	if err != nil {
 		return err
 	}
@@ -171,6 +168,8 @@ func EditManifest(ctx context.Context, name, metadata string) error {
 	if err != nil {
 		return err
 	}
+
+	manifest.filepath = manifestPath
 
 	if !utils.ShouldWrite(oldManifest, content) {
 		return nil
